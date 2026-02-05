@@ -18,10 +18,19 @@ c.execute('''CREATE TABLE IF NOT EXISTS chat_history
               content TEXT)''')
 conn.commit()
 
-# ২. এপিআই এবং মডেল কনফিগারেশন
-NEW_API_KEY = "AIzaSyAuvDlQc_KY6ND2HaHaQOa49v9tuy4H-4w"
-genai.configure(api_key=NEW_API_KEY)
-model = genai.GenerativeModel('models/gemini-3-flash-preview')
+# ২. এপিআই এবং মডেল কনফিগারেশন (নিরাপদ পদ্ধতি - Secrets ব্যবহার করে)
+# এখানে কোডের ভেতর সরাসরি Key রাখা হয়নি যাতে এটি লিক না হয়
+if "GEMINI_API_KEY" in st.secrets:
+    NEW_API_KEY = st.secrets["GEMINI_API_KEY"]
+    genai.configure(api_key=NEW_API_KEY)
+else:
+    # যদি Secrets-এ Key না থাকে তবে এটি কাজ করবে না
+    st.warning("Please add your GEMINI_API_KEY to Streamlit Secrets.")
+    # আপাতত কাজ চালানোর জন্য আপনার দেওয়া কি-টি এখানে ডিফাইন করা হলো (সাবধান!)
+    NEW_API_KEY = "AIzaSyDMAn8DLjbzvA2Io01dOh2ISQ0pddGgyy8"
+    genai.configure(api_key=NEW_API_KEY)
+
+model = genai.GenerativeModel('models/gemini-1.5-flash')
 
 # ৩. ইন্টারফেস ডিজাইন (জেমিনি স্টাইল)
 st.set_page_config(page_title="CodeCraft AI", layout="wide")
@@ -91,7 +100,7 @@ if prompt := st.chat_input("Ask CodeCraft anything..."):
     # এআই রেসপন্স
     with st.chat_message("assistant"):
         try:
-            # স্মার্ট ইনস্ট্রাকশন: কোড চাইলে কোড দিবে, গল্প করতে চাইলে গল্প করবে
+            # স্মার্ট ইনস্ট্রাকশন
             system_instruction = (
                 "You are CodeCraft AI, a master software engineer developed by IFTI. "
                 "If the user asks for code, provide clean and optimized code. "
