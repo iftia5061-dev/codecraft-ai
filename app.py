@@ -30,7 +30,7 @@ else:
     NEW_API_KEY = "AIzaSyDMAn8DLjbzvA2Io01dOh2ISQ0pddGgyy8"
     genai.configure(api_key=NEW_API_KEY)
 
-model = genai.GenerativeModel('models/gemini-1.5-flash')
+model = genai.GenerativeModel('models/gemini-3-flash-preview')
 
 # ৩. ইন্টারফেস ডিজাইন (জেমিনি স্টাইল)
 st.set_page_config(page_title="CodeCraft AI", layout="wide")
@@ -122,3 +122,4 @@ if prompt := st.chat_input("Ask CodeCraft anything..."):
             
         except Exception as e:
             st.error(f"Error: {e}")
+
