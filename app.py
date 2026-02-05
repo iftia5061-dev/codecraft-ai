@@ -32,7 +32,7 @@ except Exception as e:
     st.stop()
 
 # আপনার পছন্দের মডেলটি এখানে সেট করা হয়েছে
-model = genai.GenerativeModel('gemini-2.0-flash-exp') 
+model = genai.GenerativeModel('gemini-3-flash-preview') 
 
 # ৩. ইন্টারফেস ডিজাইন
 st.set_page_config(page_title="CodeCraft AI", layout="wide")
@@ -114,3 +114,4 @@ if prompt := st.chat_input("Ask CodeCraft anything..."):
             
         except Exception as e:
             st.error(f"Error: {e}")
+
