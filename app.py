@@ -44,39 +44,54 @@ model = genai.GenerativeModel('gemini-3-flash-preview')
 
 # ৪. প্রফেশনাল ইন্টারফেস ডিজাইন
 st.set_page_config(page_title="CodeCraft AI", layout="wide", page_icon="🚀")
-
-# এই অংশটুকু আপনার স্টাইল সেকশনে আপডেট করুন
-# এই অংশটুকু আপনার স্টাইল সেকশনে আপডেট করুন
+# এই কোডটুকু আগের স্টাইল সেকশনে পেস্ট করুন
 st.markdown("""
     <style>
-    /* মোবাইলে আঙুল দিয়ে স্ক্রল করার ক্ষমতা সচল করা */
-    html, body, [data-testid="stAppViewContainer"] {
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch !important; /* iOS এবং Android টাচ স্মুথ করার জন্য */
-    }
-
-    /* চ্যাট এরিয়াকে স্ক্রলযোগ্য করা */
-    .stMain {
-        overflow-y: auto !important;
-    }
-
-    /* সাইডবার টাচ স্ক্রল ফিক্স */
-    [data-testid="stSidebar"] {
-        background-color: #1a1c24 !important;
-        overflow-y: auto !important;
+    /* ১. পুরো স্ক্রিন এবং অ্যাপ কন্টেইনারের টাচ সচল করা */
+    html, body, [data-testid="stAppViewContainer"], .main {
+        overflow: auto !important;
+        height: 100vh !important;
         -webkit-overflow-scrolling: touch !important;
+        touch-action: auto !important; /* এটি আঙুলের স্পর্শ সচল করবে */
     }
 
-    /* টেক্সট বক্স এবং মেসেজ যাতে স্ক্রিনে আটকে না থাকে */
-    .bot-message, .user-message {
-        word-wrap: break-word !important;
-        overflow-wrap: break-word !important;
+    /* ২. ব্যাকগ্রাউন্ড কালার ফিক্স (ডার্ক কিন্তু টেক্সট ফ্রেন্ডলি) */
+    .stApp {
+        background-color: #0d1117 !important;
     }
 
-    /* সাইডবার টেক্সট সাদা রাখা */
-    [data-testid="stSidebar"] .stMarkdown, 
-    [data-testid="stSidebar"] p, 
-    [data-testid="stSidebar"] span {
+    /* ৩. সাইডবার কালার এবং টাচ ফিক্স */
+    [data-testid="stSidebar"] {
+        background-color: #161b22 !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: auto !important;
+    }
+
+    /* ৪. বটের মেসেজ বক্স (গাঢ় নীল ব্যাকগ্রাউন্ডে উজ্জ্বল সাদা লেখা) */
+    .bot-message {
+        background-color: #1f2937 !important;
+        color: #ffffff !important;
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #30363d;
+        margin-bottom: 10px;
+        font-size: 16px;
+        line-height: 1.5;
+        /* লেখা ঝাপসা হওয়া রোধ করতে */
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* ৫. ইউজার মেসেজ বক্স */
+    .user-message {
+        background-color: #238636 !important; /* সবুজ ব্যাকগ্রাউন্ড */
+        color: #ffffff !important;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+    }
+
+    /* ৬. সাইডবার এবং ইনপুটের সব লেখা সাদা নিশ্চিত করা */
+    [data-testid="stSidebar"] *, .stMarkdown p, .stTextInput label {
         color: #ffffff !important;
     }
     </style>
@@ -149,6 +164,7 @@ if prompt := st.chat_input("Ask CodeCraft anything..."):
         c.execute('INSERT INTO chat_history (session_id, chat_title, role, content) VALUES (?, ?, ?, ?)', 
                   (st.session_state.current_session, title, "assistant", ai_response))
         conn.commit()
+
 
 
 
