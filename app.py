@@ -51,7 +51,7 @@ st.markdown("""
     <style>
     /* মেইন ব্যাকগ্রাউন্ড আরও গাঢ় (Deep Dark) করা হয়েছে */
     .stApp {
-        background: #0a0f1e; 
+        background: #0, 0, 0; 
     }
     
     /* ইউজারের মেসেজ বক্স (নীল ব্যাকগ্রাউন্ডে সাদা টেক্সট) */
@@ -66,7 +66,7 @@ st.markdown("""
     
     /* বটের (AI) মেসেজ বক্স এবং টেক্সট - এখন একদম পরিষ্কার হবে */
     .bot-message {
-        background-color: #1e293b; /* বক্সের ব্যাকগ্রাউন্ড হালকা গ্রে */
+        background-color: #0, 0, 0; /* বক্সের ব্যাকগ্রাউন্ড হালকা গ্রে */
         color: #ffffff !important; /* টেক্সট কালার পিওর হোয়াইট */
         padding: 15px;
         border-radius: 12px;
@@ -157,6 +157,7 @@ if prompt := st.chat_input("Ask CodeCraft anything..."):
         c.execute('INSERT INTO chat_history (session_id, chat_title, role, content) VALUES (?, ?, ?, ?)', 
                   (st.session_state.current_session, title, "assistant", ai_response))
         conn.commit()
+
 
 
 
