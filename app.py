@@ -46,44 +46,49 @@ model = genai.GenerativeModel('gemini-3-flash-preview')
 st.set_page_config(page_title="CodeCraft AI", layout="wide", page_icon="🚀")
 
 # এই অংশটুকু আপনার স্টাইল সেকশনে আপডেট করুন
+# এই অংশটুকু আপনার স্টাইল সেকশনে আপডেট করুন
 st.markdown("""
     <style>
-    /* মেইন ব্যাকগ্রাউন্ড আরও গাঢ় (Deep Dark) করা হয়েছে */
+    /* মেইন ব্যাকগ্রাউন্ড ডার্ক রাখা হয়েছে */
     .stApp {
-        background: #0a0f1e; 
+        background-color: #0e1117;
     }
     
-    /* ইউজারের মেসেজ বক্স (নীল ব্যাকগ্রাউন্ডে সাদা টেক্সট) */
-    .user-message {
-        background-color: #2563eb;
-        color: #ffffff !important; 
-        padding: 15px;
-        border-radius: 12px;
-        margin: 10px 0;
-        font-size: 16px;
+    /* সাইডবারকে ডার্ক করা হয়েছে যাতে সাদা টেক্সট দেখা যায় */
+    [data-testid="stSidebar"] {
+        background-color: #1a1c24 !important;
     }
     
-    /* বটের (AI) মেসেজ বক্স এবং টেক্সট - এখন একদম পরিষ্কার হবে */
+    /* সাইডবারের ভেতরের সব টেক্সট কালার সাদা */
+    [data-testid="stSidebar"] .stMarkdown, 
+    [data-testid="stSidebar"] p, 
+    [data-testid="stSidebar"] span {
+        color: #ffffff !important;
+    }
+
+    /* চ্যাট মেসেজ বক্স - বটের জন্য */
     .bot-message {
-        background-color: #1e293b; /* বক্সের ব্যাকগ্রাউন্ড হালকা গ্রে */
-        color: #ffffff !important; /* টেক্সট কালার পিওর হোয়াইট */
+        background-color: #1e293b;
+        color: #ffffff !important;
         padding: 15px;
         border-radius: 12px;
-        border: 2px solid #334155; /* বক্সের বর্ডার স্পষ্ট করা হয়েছে */
+        border: 1px solid #334155;
         margin: 10px 0;
         line-height: 1.6;
         font-size: 16px;
-        text-shadow: 1px 1px 2px #000000; /* টেক্সটের নিচে হালকা শ্যাডো যাতে ফুটে ওঠে */
-    }
-
-    /* ইনপুট বক্সের টেক্সট যেন কালো না থাকে */
-    .stTextInput input {
-        color: #ffffff !important;
-        background-color: #1e293b !important;
     }
     
-    /* সাইডবার এবং অন্যান্য টেক্সট কালার সাদা করা */
-    .stMarkdown, p, span {
+    /* চ্যাট মেসেজ বক্স - ইউজারের জন্য */
+    .user-message {
+        background-color: #2563eb;
+        color: #ffffff !important;
+        padding: 15px;
+        border-radius: 12px;
+        margin: 10px 0;
+    }
+
+    /* ইনপুট বক্সের টেক্সট পরিষ্কার করা */
+    .stTextInput input {
         color: #ffffff !important;
     }
     </style>
@@ -99,7 +104,7 @@ with st.sidebar:
         st.session_state.current_session = str(time.time())
         st.rerun()
     st.markdown("---")
-    st.subheader("📜 History")
+    st.subheader("History")
     c.execute('SELECT DISTINCT session_id, chat_title FROM chat_history GROUP BY session_id ORDER BY id DESC')
     sessions = c.fetchall()
     for sid, title in sessions:
@@ -109,14 +114,14 @@ with st.sidebar:
                 st.session_state.current_session = sid
                 st.rerun()
         with col2:
-            if st.button("🗑️", key=f"del_{sid}"):
+            if st.button("Delete", key=f"del_{sid}"):
                 c.execute('DELETE FROM chat_history WHERE session_id=?', (sid,))
                 conn.commit()
                 st.rerun()
 
 # ৬. মেইন চ্যাট উইন্ডো
 st.title("🚀 CodeCraft AI")
-online_status = "🟢 Online Mode" if is_connected() else "🔴 Offline Mode (Limited)"
+online_status = "Online Mode" if is_connected() else "🔴 Offline Mode (Limited)"
 st.markdown(f"<p style='opacity: 0.7;'>{online_status} | Developed by <b>IFTI</b></p>", unsafe_allow_html=True)
 st.write("---")
 
@@ -157,4 +162,5 @@ if prompt := st.chat_input("Ask CodeCraft anything..."):
         c.execute('INSERT INTO chat_history (session_id, chat_title, role, content) VALUES (?, ?, ?, ?)', 
                   (st.session_state.current_session, title, "assistant", ai_response))
         conn.commit()
+
 
