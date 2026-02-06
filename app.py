@@ -45,7 +45,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # মডেল সেটআপ
-model = genai.GenerativeModel('gemini-1.5-flash') # লেটেস্ট স্টেবল মডেল
+model = genai.GenerativeModel('gemini-3-flash-preview') # লেটেস্ট স্টেবল মডেল
 
 if "current_session" not in st.session_state:
     st.session_state.current_session = str(time.time())
@@ -128,3 +128,4 @@ if prompt := st.chat_input("Ask CodeCraft anything..."):
             
         except Exception as e:
             st.error(f"এপিআই এরর: {e}")
+
