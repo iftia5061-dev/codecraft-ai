@@ -71,7 +71,7 @@ with st.sidebar:
                 st.session_state.current_session = sid
                 st.rerun()
         with col2:
-            if st.button("🗑️", key=f"del_{sid}"):
+            if st.button("Delet", key=f"del_{sid}"):
                 c.execute('DELETE FROM chat_history WHERE session_id=?', (sid,))
                 conn.commit()
                 st.rerun()
@@ -128,4 +128,5 @@ if prompt := st.chat_input("Ask CodeCraft anything..."):
             
         except Exception as e:
             st.error(f"এপিআই এরর: {e}")
+
 
