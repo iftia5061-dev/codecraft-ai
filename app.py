@@ -63,19 +63,20 @@ st.markdown("""
     [data-testid="stSidebar"] .stMarkdown, 
     [data-testid="stSidebar"] p, 
     [data-testid="stSidebar"] span {
-        color: #ffffff !important;
+        color: #black !important;
     }
 
-    /* চ্যাট মেসেজ বক্স - বটের জন্য */
+    /* বটের (AI) মেসেজ বক্স এবং টেক্সট - এখন একদম পরিষ্কার হবে */
     .bot-message {
-        background-color: #1e293b;
-        color: #ffffff !important;
+        background-color: #1e293b; /* বক্সের ব্যাকগ্রাউন্ড হালকা গ্রে */
+        color: #ffffff !important; /* টেক্সট কালার পিওর হোয়াইট */
         padding: 15px;
         border-radius: 12px;
-        border: 1px solid #334155;
+        border: 2px solid #334155; /* বক্সের বর্ডার স্পষ্ট করা হয়েছে */
         margin: 10px 0;
         line-height: 1.6;
         font-size: 16px;
+        text-shadow: 1px 1px 2px #000000; /* টেক্সটের নিচে হালকা শ্যাডো যাতে ফুটে ওঠে */
     }
     
     /* চ্যাট মেসেজ বক্স - ইউজারের জন্য */
@@ -162,5 +163,6 @@ if prompt := st.chat_input("Ask CodeCraft anything..."):
         c.execute('INSERT INTO chat_history (session_id, chat_title, role, content) VALUES (?, ?, ?, ?)', 
                   (st.session_state.current_session, title, "assistant", ai_response))
         conn.commit()
+
 
 
