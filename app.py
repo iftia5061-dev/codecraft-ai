@@ -30,7 +30,7 @@ except Exception as e:
     st.error("Secrets লোড করতে সমস্যা হয়েছে।")
     st.stop()
 
-model = genai.GenerativeModel('gemini-1.5-flash') 
+model = genai.GenerativeModel('gemini-3-flash-preview') 
 
 # ৩. প্রফেশনাল ইন্টারফেস ডিজাইন (নতুন স্টাইল যোগ করা হয়েছে)
 st.set_page_config(page_title="CodeCraft AI", layout="wide", page_icon="🚀")
@@ -151,3 +151,4 @@ if prompt := st.chat_input("Ask CodeCraft anything..."):
             
         except Exception as e:
             st.error(f"Error: {e}")
+
