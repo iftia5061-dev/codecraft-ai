@@ -49,43 +49,35 @@ st.set_page_config(page_title="CodeCraft AI", layout="wide", page_icon="🚀")
 # এই অংশটুকু আপনার স্টাইল সেকশনে আপডেট করুন
 st.markdown("""
     <style>
-    /* মেইন ব্যাকগ্রাউন্ড আরও গাঢ় (Deep Dark) করা হয়েছে */
-    .stApp {
-        background: #0, 0, 0; 
-    }
-    
-    /* ইউজারের মেসেজ বক্স (নীল ব্যাকগ্রাউন্ডে সাদা টেক্সট) */
-    .user-message {
-        background-color: #2563eb;
-        color: #ffffff !important; 
-        padding: 15px;
-        border-radius: 12px;
-        margin: 10px 0;
-        font-size: 16px;
-    }
-    
-    /* বটের (AI) মেসেজ বক্স এবং টেক্সট - এখন একদম পরিষ্কার হবে */
-    .bot-message {
-        background-color: #0, 0, 0; /* বক্সের ব্যাকগ্রাউন্ড হালকা গ্রে */
-        color: #ffffff !important; /* টেক্সট কালার পিওর হোয়াইট */
-        padding: 15px;
-        border-radius: 12px;
-        border: 2px solid #334155; /* বক্সের বর্ডার স্পষ্ট করা হয়েছে */
-        margin: 10px 0;
-        line-height: 1.6;
-        font-size: 16px;
-        text-shadow: 1px 1px 2px #000000; /* টেক্সটের নিচে হালকা শ্যাডো যাতে ফুটে ওঠে */
+    /* মোবাইলে আঙুল দিয়ে স্ক্রল করার ক্ষমতা সচল করা */
+    html, body, [data-testid="stAppViewContainer"] {
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important; /* iOS এবং Android টাচ স্মুথ করার জন্য */
     }
 
-    /* ইনপুট বক্সের টেক্সট যেন কালো না থাকে */
-    .stTextInput input {
-        color: #ffffff !important;
-        background-color: #1e293b !important;
+    /* চ্যাট এরিয়াকে স্ক্রলযোগ্য করা */
+    .stMain {
+        overflow-y: auto !important;
     }
-    
-    /* সাইডবার এবং অন্যান্য টেক্সট কালার সাদা করা */
-    .stMarkdown, p, span {
-        color: #black !important;
+
+    /* সাইডবার টাচ স্ক্রল ফিক্স */
+    [data-testid="stSidebar"] {
+        background-color: #1a1c24 !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    /* টেক্সট বক্স এবং মেসেজ যাতে স্ক্রিনে আটকে না থাকে */
+    .bot-message, .user-message {
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+
+    /* সাইডবার টেক্সট সাদা রাখা */
+    [data-testid="stSidebar"] .stMarkdown, 
+    [data-testid="stSidebar"] p, 
+    [data-testid="stSidebar"] span {
+        color: #ffffff !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -157,6 +149,7 @@ if prompt := st.chat_input("Ask CodeCraft anything..."):
         c.execute('INSERT INTO chat_history (session_id, chat_title, role, content) VALUES (?, ?, ?, ?)', 
                   (st.session_state.current_session, title, "assistant", ai_response))
         conn.commit()
+
 
 
 
