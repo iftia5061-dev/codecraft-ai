@@ -49,23 +49,21 @@ st.set_page_config(page_title="CodeCraft AI", layout="wide", page_icon="🚀")
 # এই অংশটুকু আপনার স্টাইল সেকশনে আপডেট করুন
 st.markdown("""
     <style>
-    /* মেইন ব্যাকগ্রাউন্ড ডার্ক রাখা হয়েছে */
+    /* মেইন ব্যাকগ্রাউন্ড আরও গাঢ় (Deep Dark) করা হয়েছে */
     .stApp {
-        background-color: #0e1117;
+        background: #0a0f1e; 
     }
     
-    /* সাইডবারকে ডার্ক করা হয়েছে যাতে সাদা টেক্সট দেখা যায় */
-    [data-testid="stSidebar"] {
-        background-color: #1a1c24 !important;
+    /* ইউজারের মেসেজ বক্স (নীল ব্যাকগ্রাউন্ডে সাদা টেক্সট) */
+    .user-message {
+        background-color: #2563eb;
+        color: #ffffff !important; 
+        padding: 15px;
+        border-radius: 12px;
+        margin: 10px 0;
+        font-size: 16px;
     }
     
-    /* সাইডবারের ভেতরের সব টেক্সট কালার সাদা */
-    [data-testid="stSidebar"] .stMarkdown, 
-    [data-testid="stSidebar"] p, 
-    [data-testid="stSidebar"] span {
-        color: #black !important;
-    }
-
     /* বটের (AI) মেসেজ বক্স এবং টেক্সট - এখন একদম পরিষ্কার হবে */
     .bot-message {
         background-color: #1e293b; /* বক্সের ব্যাকগ্রাউন্ড হালকা গ্রে */
@@ -78,23 +76,19 @@ st.markdown("""
         font-size: 16px;
         text-shadow: 1px 1px 2px #000000; /* টেক্সটের নিচে হালকা শ্যাডো যাতে ফুটে ওঠে */
     }
-    
-    /* চ্যাট মেসেজ বক্স - ইউজারের জন্য */
-    .user-message {
-        background-color: #2563eb;
-        color: #ffffff !important;
-        padding: 15px;
-        border-radius: 12px;
-        margin: 10px 0;
-    }
 
-    /* ইনপুট বক্সের টেক্সট পরিষ্কার করা */
+    /* ইনপুট বক্সের টেক্সট যেন কালো না থাকে */
     .stTextInput input {
         color: #ffffff !important;
+        background-color: #1e293b !important;
+    }
+    
+    /* সাইডবার এবং অন্যান্য টেক্সট কালার সাদা করা */
+    .stMarkdown, p, span {
+        color: #black !important;
     }
     </style>
 """, unsafe_allow_html=True)
-
 if "current_session" not in st.session_state:
     st.session_state.current_session = str(time.time())
 
@@ -163,6 +157,7 @@ if prompt := st.chat_input("Ask CodeCraft anything..."):
         c.execute('INSERT INTO chat_history (session_id, chat_title, role, content) VALUES (?, ?, ?, ?)', 
                   (st.session_state.current_session, title, "assistant", ai_response))
         conn.commit()
+
 
 
 
