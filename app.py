@@ -92,7 +92,7 @@ st.markdown("""
 
     /* ৬. সাইডবার এবং ইনপুটের সব লেখা সাদা নিশ্চিত করা */
     [data-testid="stSidebar"] *, .stMarkdown p, .stTextInput label {
-        color: #ffffff !important;
+        color: #0, 0, 0, !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -164,6 +164,7 @@ if prompt := st.chat_input("Ask CodeCraft anything..."):
         c.execute('INSERT INTO chat_history (session_id, chat_title, role, content) VALUES (?, ?, ?, ?)', 
                   (st.session_state.current_session, title, "assistant", ai_response))
         conn.commit()
+
 
 
 
