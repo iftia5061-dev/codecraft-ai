@@ -45,12 +45,39 @@ model = genai.GenerativeModel('gemini-3-flash-preview')
 # ৪. প্রফেশনাল ইন্টারফেস ডিজাইন
 st.set_page_config(page_title="CodeCraft AI", layout="wide", page_icon="🚀")
 
+# এই অংশটুকু আপনার স্টাইল সেকশনে আপডেট করুন
 st.markdown("""
     <style>
-    .stApp { background: radial-gradient(circle at top right, #1e293b, #0f172a); color: #f8fafc; }
-    section[data-testid="stSidebar"] { background-color: rgba(15, 23, 42, 0.8) !important; backdrop-filter: blur(10px); border-right: 1px solid rgba(255, 255, 255, 0.1); }
-    .stChatMessage { background-color: rgba(30, 41, 59, 0.5) !important; border-radius: 15px !important; border: 1px solid rgba(255, 255, 255, 0.05) !important; }
-    h1 { background: linear-gradient(90deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
+    /* মেইন ব্যাকগ্রাউন্ড একটু গাঢ় করা হয়েছে যাতে টেক্সট ফুটে ওঠে */
+    .stApp {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    }
+    
+    /* ইউজারের মেসেজ বক্স এবং টেক্সট কালার (পুরো সাদা) */
+    .user-message {
+        background-color: #3b82f6;
+        color: #ffffff !important; 
+        padding: 12px;
+        border-radius: 15px;
+        margin: 8px 0;
+        font-weight: 500;
+    }
+    
+    /* বটের (AI) মেসেজ বক্স এবং টেক্সট কালার (একদম পরিষ্কার সাদা) */
+    .bot-message {
+        background-color: #1e293b;
+        color: #f8fafc !important; /* টেক্সট কালার অফ-হোয়াইট থেকে পিওর হোয়াইট করা হয়েছে */
+        padding: 12px;
+        border-radius: 15px;
+        border: 1px solid #334155;
+        margin: 8px 0;
+        line-height: 1.6; /* লাইনের মাঝখানে গ্যাপ বাড়ানো হয়েছে যাতে পড়তে সুবিধা হয় */
+    }
+    
+    /* ইনপুট বক্সের টেক্সট কালার ঠিক করা */
+    .stTextInput input {
+        color: #ffffff !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
