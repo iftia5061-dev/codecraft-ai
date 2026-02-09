@@ -44,7 +44,6 @@ def generate_image(prompt):
     return image_url
 
 # ৪. ইন্টারফেস ডিজাইন
-# ৪. উন্নত ইন্টারফেস ডিজাইন (Pro Professional Look)
 st.markdown("""
     <style>
     /* পুরো অ্যাপের টাচ রেসপন্স ঠিক করা */
@@ -54,7 +53,7 @@ st.markdown("""
         touch-action: pan-y !important;
     }
 
-    /* বিজ্ঞাপনের জন্য জায়গা (Ad Placeholder) */
+    /* বিজ্ঞাপনের জন্য জায়গা (Ad Placeholder) */
     .ad-space {
         background-color: #111;
         color: #555;
@@ -99,6 +98,17 @@ st.markdown("""
         transition: transform 0.3s;
     }
     .gen-image:hover { transform: scale(1.02); }
+
+    /* --- নতুন প্রফেশনাল সেটিংস (গিটহাব এবং স্ট্রিমলিট লোগো সরানোর জন্য) --- */
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    .stDeployButton {display:none;}
+    [data-testid="stStatusWidget"] {visibility: hidden;}
+    /* ওপরের বাড়তি সাদা অংশ কমানোর জন্য */
+    .block-container {
+        padding-top: 1rem !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -222,6 +232,7 @@ if prompt := st.chat_input("Ask anything or type 'image: sunset'"):
                 
             except Exception as e:
                 st.error("API Error! Please check your keys or connection.")
+
 
 
 
