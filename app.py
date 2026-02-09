@@ -44,31 +44,68 @@ def generate_image(prompt):
     return image_url
 
 # ৪. ইন্টারফেস ডিজাইন
-st.set_page_config(page_title="CodeCraft AI", layout="wide", page_icon="🚀")
-
+# ৪. উন্নত ইন্টারফেস ডিজাইন (Pro Professional Look)
 st.markdown("""
     <style>
-    /* মোবাইলে টাচ এবং স্ক্রল সচল করার জন্য */
-    html, body, [data-testid="stAppViewContainer"], .main {
+    /* পুরো অ্যাপের টাচ রেসপন্স ঠিক করা */
+    html, body, [data-testid="stAppViewContainer"] {
         background-color: #000000 !important;
         overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch !important;
         touch-action: pan-y !important;
     }
-    .stSidebar { background-color: #000000; border-right: 1px solid #333; }
+
+    /* বিজ্ঞাপনের জন্য জায়গা (Ad Placeholder) */
+    .ad-space {
+        background-color: #111;
+        color: #555;
+        text-align: center;
+        padding: 10px;
+        border: 1px dashed #333;
+        margin: 10px 0;
+        font-size: 12px;
+        border-radius: 5px;
+    }
+
+    /* চ্যাট বক্স ডিজাইন */
+    .bot-message { 
+        background: #121212; 
+        padding: 15px; 
+        border-radius: 15px 15px 15px 0px; 
+        border: 1px solid #1f1f1f; 
+        color: #e0e0e0; 
+        margin-bottom: 15px;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .user-message { 
+        background: linear-gradient(135deg, #0056b3, #004494); 
+        padding: 15px; 
+        border-radius: 15px 15px 0px 15px; 
+        color: white; 
+        margin-bottom: 15px;
+        margin-left: 20%;
+    }
+
+    /* সাইডবার ডিজাইন */
+    [data-testid="stSidebar"] {
+        background-color: #050505 !important;
+        border-right: 1px solid #1a1a1a;
+    }
     
-    /* মেসেজ বক্স ডিজাইন */
-    .bot-message { background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px solid #333; color: white; margin-bottom: 10px; }
-    .user-message { background: #0056b3; padding: 15px; border-radius: 12px; color: white; margin-bottom: 10px; }
-    
-    /* টেক্সট এবং টাইটেল কালার */
-    h1, h2, h3, p, span, label { color: #ffffff !important; }
-    .developer-tag { color: #aaaaaa; font-size: 14px; margin-bottom: 20px; }
-    
-    /* ইমেজ স্টাইল */
-    .gen-image { border-radius: 15px; border: 2px solid #333; margin-top: 10px; width: 100%; }
+    /* ইমেজ ডিসপ্লে */
+    .gen-image {
+        border-radius: 12px;
+        border: 2px solid #222;
+        transition: transform 0.3s;
+    }
+    .gen-image:hover { transform: scale(1.02); }
     </style>
 """, unsafe_allow_html=True)
+
+# চ্যাটের শুরুতে একটি বিজ্ঞাপন (ব্যানার)
+st.markdown('<div class="ad-space">ADVERTISEMENT - BANNER AREA</div>', unsafe_allow_html=True)
+
+# ... (আপনার বাকি ডাটাবেজ এবং চ্যাট লজিক এখানে থাকবে)
 
 if "current_session" not in st.session_state:
     st.session_state.current_session = str(time.time())
@@ -161,3 +198,4 @@ if prompt := st.chat_input("Ask anything or type 'image: sunset'"):
                 
             except Exception as e:
                 st.error("API Error! Please check your keys or connection.")
+
