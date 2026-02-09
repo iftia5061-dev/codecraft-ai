@@ -120,6 +120,20 @@ st.markdown("""
         padding-top: 1rem !important;
         padding-bottom: 5rem !important; /* নিচের কন্টেন্ট যেন ইনপুট বারের নিচে না ঢাকা পড়ে */
     }
+
+    /* একদম নিচের কোণার লোগো এবং প্রোফাইল পিকচার পুরোপুরি মুছে ফেলা */
+    [data-testid="stStatusWidget"], 
+    .st-emotion-cache-1kyx606, 
+    .st-emotion-cache-6q9sum,
+    .st-emotion-cache-1wb9457 {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* ইনপুট বারের নিচের বাড়তি অংশ কালো করে ঢেকে দেওয়া */
+    div[data-testid="stBottomBlockContainer"] {
+        background-color: black !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 # চ্যাটের শুরুতে একটি বিজ্ঞাপন (ব্যানার)
@@ -242,6 +256,7 @@ if prompt := st.chat_input("Ask anything or type 'image: sunset'"):
                 
             except Exception as e:
                 st.error("API Error! Please check your keys or connection.")
+
 
 
 
