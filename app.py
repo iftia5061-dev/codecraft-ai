@@ -85,10 +85,11 @@ st.markdown("""
         margin-left: 20%;
     }
 
-    /* সাইডবার ডিজাইন */
+    /* সাইডবার ডিজাইন (হিস্ট্রি এবং নিউ চ্যাট ফিরিয়ে আনা) */
     [data-testid="stSidebar"] {
         background-color: #050505 !important;
         border-right: 1px solid #1a1a1a;
+        visibility: visible !important;
     }
     
     /* ইমেজ ডিসপ্লে */
@@ -99,57 +100,29 @@ st.markdown("""
     }
     .gen-image:hover { transform: scale(1.02); }
 
-    /* --- নতুন আপডেট: লোগো এবং নিচের অংশ পরিষ্কার করা --- */
+    /* --- নতুন আপডেট: প্রয়োজনীয় জিনিস রেখে ফালতু জিনিস সরানো --- */
     #MainMenu {visibility: hidden;}
     header {visibility: hidden;}
-    footer {visibility: hidden !important;} /* ফোর্সিং হাইড */
     .stDeployButton {display:none;}
-    [data-testid="stStatusWidget"] {visibility: hidden;}
     
-    /* ইনপুট বক্সকে একদম নিচে নামানো এবং লোগো ঢাকা */
+    /* শুধুমাত্র লাল ব্যানার এবং প্রোফাইল ব্যাজ সরানো */
+    div[class*="viewerBadge"], div[class*="stAppDeployButton"] {
+        display: none !important;
+    }
+
+    /* ইনপুট বক্সকে ঠিক রাখা এবং নিচের ব্র্যান্ডিং ঢাকা */
     [data-testid="stBottom"] {
         background-color: #000000 !important;
-        padding-bottom: 20px !important;
     }
 
-    /* আপনার ছবির সাথে থাকা বাড়তি এলিমেন্টগুলো লুকানোর চেষ্টা */
-    .st-emotion-cache-1kyx606 {display: none !important;}
-    
-    /* ওপরের বাড়তি সাদা অংশ কমানো */
+    footer {
+        display: none !important;
+    }
+
+    /* ওপরের বাড়তি ফাঁকা জায়গা কমানো */
     .block-container {
         padding-top: 1rem !important;
-        padding-bottom: 5rem !important; /* নিচের কন্টেন্ট যেন ইনপুট বারের নিচে না ঢাকা পড়ে */
-    }
-
-    /* একদম নিচের কোণার লোগো এবং প্রোফাইল পিকচার পুরোপুরি মুছে ফেলা */
-    [data-testid="stStatusWidget"], 
-    .st-emotion-cache-1kyx606, 
-    .st-emotion-cache-6q9sum,
-    .st-emotion-cache-1wb9457 {
-        display: none !important;
-        visibility: hidden !important;
-    }
-
-    /* ইনপুট বারের নিচের বাড়তি অংশ কালো করে ঢেকে দেওয়া */
-    div[data-testid="stBottomBlockContainer"] {
-        background-color: black !important;
-    }
-
-    /* নিচের লাল রঙের Hosted with Streamlit ব্যানার এবং প্রোফাইল পুরোপুরি ভ্যানিশ করা */
-    header, footer, .viewerBadge_container__1QSob, .st-emotion-cache-1wb9457, .st-emotion-cache-6q9sum {
-        display: none !important;
-        visibility: hidden !important;
-    }
-
-    /* নিচের কোণার প্রোফাইল আইকন এবং লাল ব্যানার লুকানো */
-    [data-testid="stStatusWidget"], .viewerBadge_link__1S137 {
-        display: none !important;
-    }
-
-    /* স্ক্রিনের একদম নিচের অংশকে কালো করে দেওয়া যাতে কোনো কিছু উঁকি না দেয় */
-    div[data-testid="stBottomBlockContainer"] {
-        background-color: black !important;
-        padding-bottom: 2rem !important;
+        padding-bottom: 6rem !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -273,6 +246,7 @@ if prompt := st.chat_input("Ask anything or type 'image: sunset'"):
                 
             except Exception as e:
                 st.error("API Error! Please check your keys or connection.")
+
 
 
 
