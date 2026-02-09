@@ -103,7 +103,31 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # চ্যাটের শুরুতে একটি বিজ্ঞাপন (ব্যানার)
-st.markdown('<div class="ad-space">ADVERTISEMENT - BANNER AREA</div>', unsafe_allow_html=True)
+import streamlit.components.v1 as components
+
+# ১. আপনার আইডিগুলো এখানে সেট করুন
+# আপনার পাবলিশার আইডি আপনার পেমেন্ট প্রোফাইল থেকে নেওয়া হয়েছে: 6478801956648313
+publisher_id = "6478801956648313" 
+# AdMob থেকে পাওয়া ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx আইডিটি এখানে বসান
+ad_unit_id = "ca-app-pub-6478801956648313/5044703146" 
+
+# ২. বিজ্ঞাপনের বক্স এবং আসল ব্যানার কোড
+ad_html = f"""
+<div style="display: flex; justify-content: center; background-color: #000; padding: 10px; border-radius: 10px; border: 1px solid #333; margin-bottom: 20px;">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-app-pub-{publisher_id}"
+     crossorigin="anonymous"></script>
+    <ins class="adsbygoogle"
+     style="display:inline-block;width:320px;height:50px"
+     data-ad-client="ca-app-pub-{publisher_id}"
+     data-ad-slot="{ad_unit_id.split('/')[-1] if '/' in ad_unit_id else ad_unit_id}"></ins>
+    <script>
+     (adsbygoogle = window.adsbygoogle || []).push({{}});
+    </script>
+</div>
+"""
+
+# ৩. অ্যাপের একদম উপরে বিজ্ঞাপনটি দেখাবে
+components.html(ad_html, height=85)
 
 # ... (আপনার বাকি ডাটাবেজ এবং চ্যাট লজিক এখানে থাকবে)
 
@@ -198,4 +222,5 @@ if prompt := st.chat_input("Ask anything or type 'image: sunset'"):
                 
             except Exception as e:
                 st.error("API Error! Please check your keys or connection.")
+
 
