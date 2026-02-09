@@ -134,6 +134,23 @@ st.markdown("""
     div[data-testid="stBottomBlockContainer"] {
         background-color: black !important;
     }
+
+    /* নিচের লাল রঙের Hosted with Streamlit ব্যানার এবং প্রোফাইল পুরোপুরি ভ্যানিশ করা */
+    header, footer, .viewerBadge_container__1QSob, .st-emotion-cache-1wb9457, .st-emotion-cache-6q9sum {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* নিচের কোণার প্রোফাইল আইকন এবং লাল ব্যানার লুকানো */
+    [data-testid="stStatusWidget"], .viewerBadge_link__1S137 {
+        display: none !important;
+    }
+
+    /* স্ক্রিনের একদম নিচের অংশকে কালো করে দেওয়া যাতে কোনো কিছু উঁকি না দেয় */
+    div[data-testid="stBottomBlockContainer"] {
+        background-color: black !important;
+        padding-bottom: 2rem !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 # চ্যাটের শুরুতে একটি বিজ্ঞাপন (ব্যানার)
@@ -256,6 +273,7 @@ if prompt := st.chat_input("Ask anything or type 'image: sunset'"):
                 
             except Exception as e:
                 st.error("API Error! Please check your keys or connection.")
+
 
 
 
