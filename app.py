@@ -110,32 +110,46 @@ for role, content in history_data:
     else:
         st.markdown(f'<div class="bot-message">{content}</div>', unsafe_allow_html=True)
 
-# ৭. চ্যাট ইনপুট এবং রেসপন্স লজিক
+# ৭. চ্যাট ইনপুট এবং স্মার্ট রেসপন্স লজিক
 if prompt := st.chat_input("Ask anything or type 'image: sunset'"):
     # ইউজারের মেসেজ
     st.markdown(f'<div class="user-message">{prompt}</div>', unsafe_allow_html=True)
     title = prompt[:30]
+    
+    # ডাটাবেজে ইউজারের মেসেজ সেভ
     c.execute('INSERT INTO chat_history (session_id, chat_title, role, content) VALUES (?, ?, ?, ?)', 
               (st.session_state.current_session, title, "user", prompt))
     conn.commit()
 
-    with st.spinner("Generating..."):
-        # ইমেজ জেনারেশন চেক (যদি ইউজার image: দিয়ে শুরু করে)
+    with st.spinner("Processing..."):
+        # --- ইমেজ জেনারেশন পার্ট (শুধুমাত্র ইমেজ দিবে) ---
         if prompt.lower().startswith("image:"):
             img_prompt = prompt[6:].strip()
             img_url = generate_image(img_prompt)
-            reply = f"Here is the image you requested for: **{img_prompt}**"
-            st.markdown(f'<div class="bot-message">{reply}<br><img src="{img_url}" class="gen-image"></div>', unsafe_allow_html=True)
             
+            # সরাসরি HTML দিয়ে ইমেজ দেখাচ্ছি যাতে কোড না আসে
+            st.markdown(f'''
+                <div class="bot-message">
+                    <p>🎨 Here is your requested image:</p>
+                    <img src="{img_url}" class="gen-image">
+                </div>
+            ''', unsafe_allow_html=True)
+            
+            # ডাটাবেজে শুধু টেক্সট টুকু সেভ করছি
             c.execute('INSERT INTO chat_history (session_id, chat_title, role, content) VALUES (?, ?, ?, ?)', 
-                      (st.session_state.current_session, title, "assistant", reply))
+                      (st.session_state.current_session, title, "assistant", f"Generated Image: {img_prompt}"))
             conn.commit()
         
+        # --- সাধারণ চ্যাট বা কোড পার্ট ---
         else:
-            # সাধারণ চ্যাট রেসপন্স
             try:
                 model = get_configured_model()
-                system_instruction = "You are CodeCraft AI by IFTI. Provide clean code or helpful answers."
+                # ইনস্ট্রাকশন আরও কড়া করে দেওয়া হয়েছে যেন বাড়তি কথা না বলে
+                system_instruction = (
+                    "You are CodeCraft AI. If the user asks for code, provide ONLY clean code. "
+                    "If they ask a question, answer concisely. Do not mention image generation here."
+                )
+                
                 response = model.generate_content([system_instruction, prompt])
                 full_response = response.text
                 
@@ -144,5 +158,6 @@ if prompt := st.chat_input("Ask anything or type 'image: sunset'"):
                 c.execute('INSERT INTO chat_history (session_id, chat_title, role, content) VALUES (?, ?, ?, ?)', 
                           (st.session_state.current_session, title, "assistant", full_response))
                 conn.commit()
+                
             except Exception as e:
-                st.error("API limit reached or error occurred. Retrying with another key...")
+                st.error("API Error! Please check your keys or connection.")
