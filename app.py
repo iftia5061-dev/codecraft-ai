@@ -99,19 +99,29 @@ st.markdown("""
     }
     .gen-image:hover { transform: scale(1.02); }
 
-    /* --- নতুন প্রফেশনাল সেটিংস (গিটহাব এবং স্ট্রিমলিট লোগো সরানোর জন্য) --- */
+    /* --- নতুন আপডেট: লোগো এবং নিচের অংশ পরিষ্কার করা --- */
     #MainMenu {visibility: hidden;}
     header {visibility: hidden;}
-    footer {visibility: hidden;}
+    footer {visibility: hidden !important;} /* ফোর্সিং হাইড */
     .stDeployButton {display:none;}
     [data-testid="stStatusWidget"] {visibility: hidden;}
-    /* ওপরের বাড়তি সাদা অংশ কমানোর জন্য */
+    
+    /* ইনপুট বক্সকে একদম নিচে নামানো এবং লোগো ঢাকা */
+    [data-testid="stBottom"] {
+        background-color: #000000 !important;
+        padding-bottom: 20px !important;
+    }
+
+    /* আপনার ছবির সাথে থাকা বাড়তি এলিমেন্টগুলো লুকানোর চেষ্টা */
+    .st-emotion-cache-1kyx606 {display: none !important;}
+    
+    /* ওপরের বাড়তি সাদা অংশ কমানো */
     .block-container {
         padding-top: 1rem !important;
+        padding-bottom: 5rem !important; /* নিচের কন্টেন্ট যেন ইনপুট বারের নিচে না ঢাকা পড়ে */
     }
     </style>
 """, unsafe_allow_html=True)
-
 # চ্যাটের শুরুতে একটি বিজ্ঞাপন (ব্যানার)
 import streamlit.components.v1 as components
 
@@ -232,6 +242,7 @@ if prompt := st.chat_input("Ask anything or type 'image: sunset'"):
                 
             except Exception as e:
                 st.error("API Error! Please check your keys or connection.")
+
 
 
 
