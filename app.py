@@ -102,25 +102,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-    <style>
-    /* Streamlit-এর ওপরের মেনু এবং গিটহাব আইকন লুকানোর জন্য */
-    #MainMenu {visibility: hidden;}
-    header {visibility: hidden;}
-    footer {visibility: hidden;}
-    
-    /* নিচের 'Made with Streamlit' অংশটি সরানোর জন্য */
-    .stDeployButton {display:none;}
-    footer {display:none;}
-    
-    /* স্ক্রিনের ওপরের ফাঁকা জায়গা কমানোর জন্য */
-    .block-container {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-    }
-    </style>
-    """, unsafe_allow_index=True)
-
 # চ্যাটের শুরুতে একটি বিজ্ঞাপন (ব্যানার)
 import streamlit.components.v1 as components
 
@@ -241,6 +222,7 @@ if prompt := st.chat_input("Ask anything or type 'image: sunset'"):
                 
             except Exception as e:
                 st.error("API Error! Please check your keys or connection.")
+
 
 
 
