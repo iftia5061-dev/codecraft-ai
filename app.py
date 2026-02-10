@@ -19,24 +19,20 @@ def get_ai_response(prompt):
         genai.configure(api_key=active_key)
         model = genai.GenerativeModel('gemini-3-flash-preview')
         
-        # System Instruction আপডেট করা হয়েছে যাতে ইমেজ রিকোয়েস্ট হ্যান্ডেল করতে পারে
+        # System Instruction আরও ক্লিয়ার করা হয়েছে যাতে ভুল আউটপুট না আসে
         system_instruction = """
-        You are LOOM AI. Your replies must be clean, professional, and well-structured using markdown.
-        DO NOT give long-winded answers. Be direct.
+        You are LOOM AI. Your replies must be direct and clean. Use Markdown.
         
-        IMAGE GENERATION RULE:
-        If the user asks to create, draw, or generate an image or logo (e.g., "make a logo", "draw a tree"), 
-        your response MUST start with the prefix "image:" followed by a descriptive prompt in English.
-        Example: "image: a professional minimalist logo for a tech company".
-        DO NOT say you cannot generate images. Just provide the prefix.
-
-        About your creator (Provide only when asked about who made you):
-        - Name: Md Aminul Islam.
-        - Role: Full-stack Web Developer & AI Enthusiast.
-        - Skills: Python, Flask, JavaScript, and AI Integration.
+        CRITICAL RULE FOR IMAGES/LOGOS:
+        If user asks for an image, logo, drawing or art, you MUST ONLY respond with the prefix "image:" 
+        followed by a detailed English prompt. 
+        Example: "image: a modern minimalist tech logo for 'LOM'".
+        DO NOT provide JSON, DO NOT provide SVG code, DO NOT say you cannot do it.
+        
+        If the user asks for code, provide only the code block with the language name.
         """
         
-        response = model.generate_content(system_instruction + " User Prompt: " + prompt)
+        response = model.generate_content(system_instruction + "\nUser Prompt: " + prompt)
         return response.text
     except Exception as e:
         return f"Error: {str(e)}"
@@ -44,9 +40,10 @@ def get_ai_response(prompt):
 def generate_image_url(prompt):
     clean_prompt = prompt.replace("image:", "").strip()
     seed = random.randint(0, 999999)
-    return f"https://pollinations.ai/p/{clean_prompt.replace(' ', '%20')}?width=1024&height=1024&seed={seed}"
+    # Pollinations এর সঠিক ফরম্যাট নিশ্চিত করা হয়েছে
+    return f"https://pollinations.ai/p/{clean_prompt.replace(' ', '%20')}?width=1024&height=1024&seed={seed}&nologo=true"
 
-# ২. প্রফেশনাল ইন্টারফেস (Gemini Style History Menu সহ)
+# ২. প্রফেশনাল ইন্টারফেস
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -90,11 +87,10 @@ HTML_TEMPLATE = """
         #chat-window::-webkit-scrollbar { width: 6px; }
         #chat-window::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
 
-        .user-msg { background: #0056b3; color: white; padding: 12px 16px; border-radius: 18px 18px 0 18px; align-self: flex-end; max-width: 85%; }
-        .bot-msg { background: #1a1a1a; color: #eee; padding: 12px 16px; border-radius: 18px 18px 18px 0; align-self: flex-start; max-width: 85%; border: 1px solid #333; }
-        .bot-msg img { width: 100%; border-radius: 10px; margin-top: 10px; }
+        .user-msg { background: #0056b3; color: white; padding: 12px 16px; border-radius: 18px 18px 0 18px; align-self: flex-end; max-width: 85%; word-wrap: break-word; }
+        .bot-msg { background: #1a1a1a; color: #eee; padding: 12px 16px; border-radius: 18px 18px 18px 0; align-self: flex-start; max-width: 85%; border: 1px solid #333; word-wrap: break-word; }
+        .bot-msg img { width: 100%; max-width: 512px; border-radius: 10px; margin-top: 10px; display: block; background: #222; min-height: 200px; }
 
-        /* History Item & 3-Dot Menu */
         .btn-new { background: #0056b3; color: white; padding: 12px; border: none; border-radius: 20px; cursor: pointer; font-weight: bold; margin-bottom: 20px; text-align: center; }
         
         .history-item { 
@@ -103,7 +99,6 @@ HTML_TEMPLATE = """
             transition: 0.2s; font-size: 14px; color: #ccc;
         }
         .history-item:hover, .history-item.active { background: #1a1a1a; color: white; }
-        .history-item.pinned { border-left: 3px solid #0056b3; }
         
         .dots-btn { opacity: 0; padding: 5px; font-size: 18px; line-height: 1; transition: 0.2s; }
         .history-item:hover .dots-btn { opacity: 1; }
@@ -111,16 +106,13 @@ HTML_TEMPLATE = """
         .dropdown-menu {
             display: none; position: absolute; right: 0; top: 35px; background: #222;
             border: 1px solid #444; border-radius: 8px; z-index: 2000; width: 120px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
-        .dropdown-menu div { padding: 8px 12px; font-size: 13px; color: #ddd; cursor: pointer; }
-        .dropdown-menu div:hover { background: #333; color: white; }
 
         .input-container { padding: 20px; border-top: 1px solid #222; display: flex; gap: 10px; background: #000; padding-bottom: 30px; }
         input { flex-grow: 1; background: #111; border: 1px solid #333; padding: 14px; border-radius: 12px; color: white; outline: none; font-size: 16px; }
         .btn-send { background: #0056b3; border: none; width: 50px; height: 50px; border-radius: 50%; color: white; cursor: pointer; font-size: 20px; }
         
-        .download-btn { display: inline-block; margin-top: 8px; padding: 6px 12px; background: #222; border: 1px solid #444; color: #00c3ff; border-radius: 5px; font-size: 12px; cursor: pointer; }
+        .download-btn { display: inline-block; margin-top: 10px; padding: 8px 15px; background: #0056b3; color: #fff; border: none; border-radius: 5px; font-size: 13px; cursor: pointer; text-decoration: none; }
     </style>
 </head>
 <body onclick="closeAllMenus(event)">
@@ -135,7 +127,7 @@ HTML_TEMPLATE = """
             <div class="header"><h3>LOOM AI</h3></div>
             <div id="chat-window"></div>
             <div class="input-container">
-                <input type="text" id="userInput" placeholder="Type a message or 'image: cat'..." onkeypress="if(event.key==='Enter') send()">
+                <input type="text" id="userInput" placeholder="Ask anything or 'image: cute cat'..." onkeypress="if(event.key==='Enter') send()">
                 <button class="btn-send" onclick="send()">➔</button>
             </div>
         </div>
@@ -153,56 +145,13 @@ HTML_TEMPLATE = """
         function renderHistory() {
             const list = document.getElementById('historyList');
             list.innerHTML = '';
-            
-            const sortedIds = Object.keys(chats).sort((a, b) => {
-                if (chats[b].pinned !== chats[a].pinned) return chats[b].pinned ? 1 : -1;
-                return b - a;
-            });
-
+            const sortedIds = Object.keys(chats).sort((a, b) => b - a);
             sortedIds.forEach(id => {
                 const item = document.createElement('div');
-                item.className = `history-item ${id === currentChatId ? 'active' : ''} ${chats[id].pinned ? 'pinned' : ''}`;
-                item.innerHTML = `
-                    <div style="flex-grow:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="loadChat('${id}')">
-                        ${chats[id].pinned ? '📌 ' : ''}${chats[id].title}
-                    </div>
-                    <div class="dots-btn" onclick="toggleMenu(event, '${id}')">⋮</div>
-                    <div id="menu-${id}" class="dropdown-menu">
-                        <div onclick="pinChat('${id}')">${chats[id].pinned ? 'Unpin' : 'Pin'}</div>
-                        <div onclick="renameChat('${id}')">Rename</div>
-                        <div onclick="deleteChat('${id}')" style="color:#ff4444;">Delete</div>
-                    </div>
-                `;
+                item.className = `history-item ${id === currentChatId ? 'active' : ''}`;
+                item.innerHTML = `<div onclick="loadChat('${id}')" style="flex-grow:1; overflow:hidden;">${chats[id].title}</div>`;
                 list.appendChild(item);
             });
-        }
-
-        function toggleMenu(e, id) {
-            e.stopPropagation();
-            closeAllMenus();
-            document.getElementById('menu-' + id).style.display = 'block';
-        }
-
-        function closeAllMenus() {
-            document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
-        }
-
-        function pinChat(id) {
-            chats[id].pinned = !chats[id].pinned;
-            saveToLocal();
-        }
-
-        function renameChat(id) {
-            const n = prompt("Rename chat:", chats[id].title);
-            if(n) { chats[id].title = n; saveToLocal(); }
-        }
-
-        function deleteChat(id) {
-            if(confirm("Delete this chat?")) {
-                delete chats[id];
-                if(currentChatId === id) startNewChat();
-                saveToLocal();
-            }
         }
 
         function startNewChat() {
@@ -220,12 +169,19 @@ HTML_TEMPLATE = """
         }
 
         async function downloadImage(url) {
-            const res = await fetch(url);
-            const blob = await res.blob();
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = "LOOM_AI.png";
-            link.click();
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = `Loom_AI_${Date.now()}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } catch (e) {
+                window.open(url, '_blank');
+            }
         }
 
         function appendMessage(role, text, isImage = false, save = true) {
@@ -234,16 +190,18 @@ HTML_TEMPLATE = """
             div.className = role === 'user' ? 'user-msg' : 'bot-msg';
             
             if (isImage) {
-                div.innerHTML = `<img src="${text}"><button class="download-btn" onclick="downloadImage('${text}')">Download</button>`;
+                div.innerHTML = `<img src="${text}" alt="Generated Image"><br><button class="download-btn" onclick="downloadImage('${text}')">Download Image</button>`;
             } else {
-                let formattedText = text.replace(/\\n/g, '<br>').replace(/\\*\\*(.*?)\\*\\*/g, '<b>$1</b>').replace(/```([\s\S]*?)```/g, '<pre style="background:#000; padding:10px; border-radius:5px; color:#0f0; border:1px solid #333; overflow-x:auto; margin-top:5px;">$1</pre>');
+                let formattedText = text.replace(/\\n/g, '<br>')
+                    .replace(/\\*\\*(.*?)\\*\\*/g, '<b>$1</b>')
+                    .replace(/```(.*?)\\n([\s\S]*?)```/g, '<pre style="background:#000; padding:10px; border-radius:5px; color:#0f0; border:1px solid #333; overflow-x:auto; margin:10px 0;">$2</pre>');
                 div.innerHTML = formattedText;
             }
             win.appendChild(div);
             win.scrollTo(0, win.scrollHeight);
 
             if (save && currentChatId) {
-                if (!chats[currentChatId]) chats[currentChatId] = { title: text.substring(0, 25), messages: [], pinned: false };
+                if (!chats[currentChatId]) chats[currentChatId] = { title: text.substring(0, 20), messages: [] };
                 chats[currentChatId].messages.push({ role, text, isImage });
                 saveToLocal();
             }
@@ -256,8 +214,9 @@ HTML_TEMPLATE = """
             if (!currentChatId) startNewChat();
             appendMessage('user', text);
             input.value = '';
+            
             const loading = document.createElement('div');
-            loading.className = 'bot-msg'; loading.innerText = 'Thinking...';
+            loading.className = 'bot-msg'; loading.innerText = 'Loom AI is thinking...';
             document.getElementById('chat-window').appendChild(loading);
 
             try {
@@ -265,20 +224,21 @@ HTML_TEMPLATE = """
                 const data = await res.json();
                 loading.remove();
 
-                // যদি AI উত্তর দেয় "image: ..." ফরম্যাটে, তবে সেটাকে ইমেজ হিসেবে ট্রিগার করো
-                if (data.reply && data.reply.toLowerCase().startsWith("image:")) {
-                   const imgUrl = `https://pollinations.ai/p/${data.reply.replace("image:", "").trim().replace(/ /g, '%20')}?width=1024&height=1024&seed=${Math.floor(Math.random() * 1000000)}`;
+                if (data.reply && data.reply.toLowerCase().includes("image:")) {
+                   const promptMatch = data.reply.split(/image:/i)[1].trim();
+                   const imgUrl = `https://pollinations.ai/p/${encodeURIComponent(promptMatch)}?width=1024&height=1024&seed=${Math.floor(Math.random() * 1000000)}&nologo=true`;
                    appendMessage('bot', imgUrl, true);
                 } else if (data.image) {
                     appendMessage('bot', data.image, true);
                 } else {
                     appendMessage('bot', data.reply);
                 }
-            } catch (e) { loading.innerText = "Error: Connection failed."; }
+            } catch (e) { loading.innerText = "Error: Connection lost."; }
         }
 
         renderHistory();
         if (!currentChatId) startNewChat();
+        function closeAllMenus() {}
     </script>
 </body>
 </html>
@@ -290,6 +250,7 @@ def index(): return render_template_string(HTML_TEMPLATE)
 @app.route('/chat', methods=['POST'])
 def chat():
     msg = request.json.get("message", "")
+    # সরাসরি image: লিখে রিকোয়েস্ট করলে
     if msg.lower().startswith("image:"):
         return jsonify({"image": generate_image_url(msg)})
     
