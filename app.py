@@ -17,7 +17,7 @@ def get_ai_response(prompt):
     if not active_key: return "API Key missing in Vercel settings!"
     try:
         genai.configure(api_key=active_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-3-flash-preview')
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
@@ -210,3 +210,4 @@ def chat():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
