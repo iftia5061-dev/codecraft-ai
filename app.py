@@ -28,75 +28,102 @@ def generate_image_url(prompt):
     return f"https://pollinations.ai/p/{prompt.replace(' ', '%20')}?width=1024&height=1024&seed={seed}"
 
 # ২. প্রফেশনাল ইউজার ইন্টারফেস (নতুন কালার এবং ফিচারসহ)
+# ২. প্রফেশনাল ইউজার ইন্টারফেস (ফোন রেসপন্সিভ এবং রিফ্রেশ ফিক্সসহ)
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>CodeCraft AI</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
+        /* ১. রিফ্রেশ বন্ধ এবং ফুল স্ক্রিন ফিক্স */
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background-color: #000; color: #fff; font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; }
-        
-        /* সাইডবার - কালারফুল এবং বাটনসহ */
-        #sidebar { width: 280px; background-color: #0a0a0a; border-right: 1px solid #222; display: flex; flex-direction: column; padding: 15px; }
-        .btn-new { background: #0056b3; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 20px; transition: 0.3s; }
-        .btn-new:hover { background: #004494; transform: scale(1.02); }
-        
-        .history-list { flex-grow: 1; overflow-y: auto; }
-        .history-item { 
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 10px; border-radius: 6px; margin-bottom: 8px; background: #161616; cursor: pointer; font-size: 13px;
+        html, body { 
+            background-color: #000; color: #fff; font-family: 'Inter', sans-serif; 
+            height: 100vh; width: 100vw; overflow: hidden; 
+            overscroll-behavior-y: contain; /* ফোন স্ক্রিন রিফ্রেশ আটকাবে */
         }
-        .history-item:hover { background: #222; }
-        .action-btns button { background: none; border: none; color: #666; cursor: pointer; margin-left: 5px; font-size: 14px; }
-        .action-btns button:hover { color: #fff; }
+        
+        #app-container { display: flex; height: 100vh; width: 100vw; position: relative; }
 
-        /* মেইন এরিয়া */
-        #main { flex-grow: 1; display: flex; flex-direction: column; }
-        .header { padding: 15px; text-align: center; border-bottom: 1px solid #222; background: #000; }
+        /* ২. সাইডবার - ফোনে স্লাইড হয়ে আসবে */
+        #sidebar { 
+            width: 280px; background-color: #0a0a0a; border-right: 1px solid #222; 
+            display: flex; flex-direction: column; padding: 15px; 
+            transition: 0.3s ease-in-out; z-index: 1000;
+        }
+        
+        @media (max-width: 768px) {
+            #sidebar { position: absolute; left: -280px; height: 100%; }
+            #sidebar.active { left: 0; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
+            .menu-toggle { display: block !important; }
+        }
+
+        /* ৩. মেনু বাটন (☰) */
+        .menu-toggle {
+            display: none; position: fixed; top: 15px; left: 15px;
+            background: #1a1a1a; color: white; border: 1px solid #333;
+            padding: 8px 12px; border-radius: 8px; z-index: 1001; cursor: pointer;
+        }
+
+        /* ৪. মেইন চ্যাট এরিয়া */
+        #main { flex-grow: 1; display: flex; flex-direction: column; width: 100%; }
+        .header { padding: 15px; text-align: center; border-bottom: 1px solid #222; background: #000; padding-top: 55px; }
         .ad-space { width: 100%; height: 60px; background: #111; border: 1px dashed #333; margin: 5px auto; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #444; }
         
-        #chat-window { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; }
+        #chat-window { 
+            flex-grow: 1; padding: 20px; overflow-y: auto; 
+            display: flex; flex-direction: column; gap: 15px; 
+            scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
+        }
+
+        /* চ্যাট বাবল */
         .user-msg { background: #0056b3; color: white; padding: 12px 16px; border-radius: 18px 18px 0 18px; align-self: flex-end; max-width: 80%; }
         .bot-msg { background: #1a1a1a; color: #eee; padding: 12px 16px; border-radius: 18px 18px 18px 0; align-self: flex-start; max-width: 80%; border: 1px solid #333; }
 
-        /* চ্যাট ইনপুট */
-        .input-container { padding: 20px; border-top: 1px solid #222; display: flex; gap: 10px; background: #000; }
-        input { flex-grow: 1; background: #111; border: 1px solid #333; padding: 14px; border-radius: 12px; color: white; outline: none; }
-        input:focus { border-color: #0056b3; }
-        .btn-send { background: #0056b3; border: none; width: 50px; border-radius: 10px; color: white; cursor: pointer; font-size: 20px; }
-
-        @media (max-width: 768px) { #sidebar { display: none; } }
+        /* ইনপুট বক্স */
+        .input-container { padding: 20px; border-top: 1px solid #222; display: flex; gap: 10px; background: #000; padding-bottom: 30px; }
+        input { flex-grow: 1; background: #111; border: 1px solid #333; padding: 14px; border-radius: 12px; color: white; outline: none; font-size: 16px; }
+        .btn-send { background: #0056b3; border: none; width: 50px; height: 50px; border-radius: 50%; color: white; cursor: pointer; font-size: 20px; }
+        
+        .btn-new { background: #0056b3; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 20px; }
+        .history-list { flex-grow: 1; overflow-y: auto; }
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-radius: 6px; margin-bottom: 8px; background: #161616; cursor: pointer; font-size: 13px; }
+        .action-btns button { background: none; border: none; color: #666; cursor: pointer; margin-left: 5px; }
     </style>
 </head>
 <body>
-    <div id="sidebar">
-        <button class="btn-new" onclick="startNewChat()">＋ New Chat</button>
-        <div class="history-list" id="historyList"></div>
-    </div>
-    
-    <div id="main">
-        <div class="header">
-            <h3>🚀 CodeCraft AI</h3>
-            <div class="ad-space" id="adSlot">
-                <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-app-pub-6478801956648313" crossorigin="anonymous"></script>
-                <ins class="adsbygoogle" style="display:inline-block;width:320px;height:50px" data-ad-client="ca-app-pub-6478801956648313" data-ad-slot="5044703146"></ins>
-                <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-            </div>
+    <div id="app-container">
+        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('active')">☰</button>
+        
+        <div id="sidebar">
+            <button class="btn-new" onclick="startNewChat()">＋ New Chat</button>
+            <div class="history-list" id="historyList"></div>
         </div>
+        
+        <div id="main">
+            <div class="header">
+                <h3>LOOM AI</h3>
+                <div class="ad-space">
+                    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-app-pub-6478801956648313" crossorigin="anonymous"></script>
+                    <ins class="adsbygoogle" style="display:inline-block;width:320px;height:50px" data-ad-client="ca-app-pub-6478801956648313" data-ad-slot="5044703146"></ins>
+                    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+                </div>
+            </div>
 
-        <div id="chat-window"></div>
+            <div id="chat-window"></div>
 
-        <div class="input-container">
-            <input type="text" id="userInput" placeholder="Type message or image: sunset..." onkeypress="if(event.key==='Enter') send()">
-            <button class="btn-send" onclick="send()">➔</button>
+            <div class="input-container">
+                <input type="text" id="userInput" placeholder="Type message..." onkeypress="if(event.key==='Enter') send()">
+                <button class="btn-send" onclick="send()">➔</button>
+            </div>
         </div>
     </div>
 
     <script>
+        // আপনার আগের সব স্ক্রিপ্ট লজিক (chats, renderHistory, send, loadChat, etc.) এখানে হুবহু থাকবে
         let currentChatId = Date.now();
         let chats = JSON.parse(localStorage.getItem('loom_chats')) || {};
 
@@ -109,8 +136,8 @@ HTML_TEMPLATE = """
                 item.innerHTML = `
                     <span onclick="loadChat('${id}')">📄 ${chats[id].title}</span>
                     <div class="action-btns">
-                        <button onclick="renameChat('${id}')">✏️</button>
-                        <button onclick="deleteChat('${id}')">🗑️</button>
+                        <button onclick="renameChat('${id}')">Rename</button>
+                        <button onclick="deleteChat('${id}')">Delete</button>
                     </div>
                 `;
                 list.appendChild(item);
@@ -120,12 +147,14 @@ HTML_TEMPLATE = """
         function startNewChat() {
             currentChatId = Date.now();
             document.getElementById('chat-window').innerHTML = '';
+            document.getElementById('sidebar').classList.remove('active');
             document.getElementById('userInput').focus();
         }
 
         function loadChat(id) {
             currentChatId = id;
             document.getElementById('chat-window').innerHTML = '';
+            document.getElementById('sidebar').classList.remove('active');
             chats[id].messages.forEach(m => appendMessage(m.role, m.text));
         }
 
@@ -167,7 +196,6 @@ HTML_TEMPLATE = """
             chats[currentChatId].messages.push({role: 'user', text: text});
             input.value = '';
 
-            // AI Reply লোড করার সময় একটু 'Processing...' দেখানো
             const tempBotMsg = document.createElement('div');
             tempBotMsg.className = 'bot-msg';
             tempBotMsg.innerText = 'Processing...';
@@ -197,7 +225,6 @@ HTML_TEMPLATE = """
 </body>
 </html>
 """
-
 @app.route('/')
 def index(): return render_template_string(HTML_TEMPLATE)
 
@@ -210,4 +237,5 @@ def chat():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
