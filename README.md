@@ -1,6 +1,6 @@
-# 🚀 CodeCraft AI - Advanced Gemini Chatbot
+# 🚀 Loom AI - Advanced Gemini Chatbot
 
-**CodeCraft AI** is a smart, persistent AI assistant developed by **Ifti Ahmed**. It uses Google's Gemini API to provide intelligent responses and stores chat history securely using SQLite.
+**Loot AI** is a smart, persistent AI assistant developed by **Ifti Ahmed**. It uses Google's Gemini API to provide intelligent responses and stores chat history securely using SQLite.
 
 ## ✨ Key Features
 - **Persistent Memory:** Remembers your chats even after closing the browser.
