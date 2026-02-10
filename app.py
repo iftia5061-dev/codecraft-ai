@@ -1,4 +1,3 @@
-
 import os
 import random
 from flask import Flask, render_template_string, request, jsonify
@@ -20,10 +19,17 @@ def get_ai_response(prompt):
         genai.configure(api_key=active_key)
         model = genai.GenerativeModel('gemini-3-flash-preview')
         
+        # System Instruction আপডেট করা হয়েছে যাতে ইমেজ রিকোয়েস্ট হ্যান্ডেল করতে পারে
         system_instruction = """
         You are LOOM AI. Your replies must be clean, professional, and well-structured using markdown.
         DO NOT give long-winded answers. Be direct.
         
+        IMAGE GENERATION RULE:
+        If the user asks to create, draw, or generate an image or logo (e.g., "make a logo", "draw a tree"), 
+        your response MUST start with the prefix "image:" followed by a descriptive prompt in English.
+        Example: "image: a professional minimalist logo for a tech company".
+        DO NOT say you cannot generate images. Just provide the prefix.
+
         About your creator (Provide only when asked about who made you):
         - Name: Md Aminul Islam.
         - Role: Full-stack Web Developer & AI Enthusiast.
@@ -129,7 +135,7 @@ HTML_TEMPLATE = """
             <div class="header"><h3>LOOM AI</h3></div>
             <div id="chat-window"></div>
             <div class="input-container">
-                <input type="text" id="userInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') send()">
+                <input type="text" id="userInput" placeholder="Type a message or 'image: cat'..." onkeypress="if(event.key==='Enter') send()">
                 <button class="btn-send" onclick="send()">➔</button>
             </div>
         </div>
@@ -148,7 +154,6 @@ HTML_TEMPLATE = """
             const list = document.getElementById('historyList');
             list.innerHTML = '';
             
-            // Sort: Pinned first, then by time
             const sortedIds = Object.keys(chats).sort((a, b) => {
                 if (chats[b].pinned !== chats[a].pinned) return chats[b].pinned ? 1 : -1;
                 return b - a;
@@ -246,7 +251,7 @@ HTML_TEMPLATE = """
 
         async function send() {
             const input = document.getElementById('userInput');
-            const text = input.value.trim();
+            let text = input.value.trim();
             if (!text) return;
             if (!currentChatId) startNewChat();
             appendMessage('user', text);
@@ -259,8 +264,16 @@ HTML_TEMPLATE = """
                 const res = await fetch('/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
                 const data = await res.json();
                 loading.remove();
-                if (data.image) appendMessage('bot', data.image, true);
-                else appendMessage('bot', data.reply);
+
+                // যদি AI উত্তর দেয় "image: ..." ফরম্যাটে, তবে সেটাকে ইমেজ হিসেবে ট্রিগার করো
+                if (data.reply && data.reply.toLowerCase().startsWith("image:")) {
+                   const imgUrl = `https://pollinations.ai/p/${data.reply.replace("image:", "").trim().replace(/ /g, '%20')}?width=1024&height=1024&seed=${Math.floor(Math.random() * 1000000)}`;
+                   appendMessage('bot', imgUrl, true);
+                } else if (data.image) {
+                    appendMessage('bot', data.image, true);
+                } else {
+                    appendMessage('bot', data.reply);
+                }
             } catch (e) { loading.innerText = "Error: Connection failed."; }
         }
 
@@ -279,7 +292,9 @@ def chat():
     msg = request.json.get("message", "")
     if msg.lower().startswith("image:"):
         return jsonify({"image": generate_image_url(msg)})
-    return jsonify({"reply": get_ai_response(msg)})
+    
+    reply = get_ai_response(msg)
+    return jsonify({"reply": reply})
 
 if __name__ == '__main__':
     app.run(debug=True)
