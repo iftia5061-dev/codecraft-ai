@@ -19,19 +19,20 @@ def get_ai_response(prompt):
         genai.configure(api_key=active_key)
         model = genai.GenerativeModel('gemini-3-flash-preview')
         
-        # আপনার পরিচয় এখানে সেট করে দেওয়া হয়েছে
-        creator_info = """
-        You are LOOM AI. You are created and developed by Md Aminul Islam.
-        About Creator (Md Aminul Islam): 
-        - He is a professional Full-stack Web Developer and AI Enthusiast.
-        - He is skilled in Python, JavaScript, Flask, and AI Model Integration.
-        - He loves to build innovative tools that help people.
-        If anyone asks who made you, tell them proudly about Md Aminul Islam in a professional way.
-        Answer all user queries in a well-formatted, clean, and professional manner.
+        # সিস্টেম ইনস্ট্রাকশন আপডেট করা হয়েছে যাতে শুধু জিজ্ঞেস করলেই পরিচয় দেয়
+        system_instruction = """
+        You are LOOM AI. Your responses must be direct, professional, and structured. 
+        DO NOT provide your creator's information unless the user specifically asks 'who created you?', 'who is your owner?', or something similar about your development.
+        
+        When asked about your creator, provide this info:
+        - Creator Name: Md Aminul Islam.
+        - Profession: Full-stack Web Developer and AI Enthusiast.
+        - Expertise: Python, JavaScript, Flask, and AI Model Integration.
+        
+        For all other prompts, just answer the question directly without any extra introduction or self-promotion.
         """
         
-        system_instruction = "Give direct and structured answers. Use bullet points for lists. Provide code inside markdown blocks."
-        response = model.generate_content(creator_info + system_instruction + " User Prompt: " + prompt)
+        response = model.generate_content(system_instruction + " User Prompt: " + prompt)
         return response.text
     except Exception as e:
         return f"Error: {str(e)}"
@@ -41,7 +42,7 @@ def generate_image_url(prompt):
     seed = random.randint(0, 999999)
     return f"https://pollinations.ai/p/{clean_prompt.replace(' ', '%20')}?width=1024&height=1024&seed={seed}"
 
-# ২. প্রফেশনাল ইন্টারফেস (Download & Share অপশনসহ)
+# ২. প্রফেশনাল ইন্টারফেস (হিস্ট্রি, ডাউনলোড ও শেয়ারসহ)
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -89,11 +90,8 @@ HTML_TEMPLATE = """
         .bot-msg { background: #1a1a1a; color: #eee; padding: 12px 16px; border-radius: 18px 18px 18px 0; align-self: flex-start; max-width: 85%; border: 1px solid #333; line-height: 1.6; }
         .bot-msg img { width: 100%; border-radius: 10px; margin-top: 10px; display: block; }
         
-        /* ইমেজ বাটন ডিজাইন */
         .img-actions { display: flex; gap: 10px; margin-top: 10px; }
         .action-btn { background: #333; color: #fff; padding: 6px 12px; border-radius: 5px; font-size: 12px; cursor: pointer; border: 1px solid #444; }
-        .action-btn:hover { background: #444; }
-
         pre { background: #000; padding: 12px; border-radius: 8px; overflow-x: auto; color: #0f0; border: 1px solid #333; margin: 10px 0; font-size: 14px; }
 
         .input-container { padding: 20px; border-top: 1px solid #222; display: flex; gap: 10px; background: #000; padding-bottom: 30px; }
@@ -156,19 +154,21 @@ HTML_TEMPLATE = """
         }
 
         async function downloadImg(url) {
-            const response = await fetch(url);
-            const blob = await response.blob();
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "loom_ai_image.png";
-            link.click();
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = "loom_ai_image.png";
+                link.click();
+            } catch(e) { alert("Download failed."); }
         }
 
-        async function shareImg(url) {
+        function shareImg(url) {
             if (navigator.share) {
                 navigator.share({ title: 'LOOM AI Image', url: url });
             } else {
-                alert("Sharing not supported on this browser. Copy link: " + url);
+                prompt("Copy link to share:", url);
             }
         }
 
@@ -196,7 +196,7 @@ HTML_TEMPLATE = """
             win.scrollTo(0, win.scrollHeight);
 
             if (save && currentChatId) {
-                if (!chats[currentChatId]) chats[currentChatId] = { title: "New Chat", messages: [] };
+                if (!chats[currentChatId]) chats[currentChatId] = { title: text.substring(0, 25), messages: [] };
                 chats[currentChatId].messages.push({ role, text, isImage });
                 saveToLocal();
             }
@@ -250,9 +250,16 @@ HTML_TEMPLATE = """
         }
 
         function deleteChat(id) {
-            delete chats[id];
-            saveToLocal();
-            startNewChat();
+            if(confirm("Delete chat?")) {
+                delete chats[id];
+                saveToLocal();
+                startNewChat();
+            }
+        }
+
+        function renameChat(id) {
+            const n = prompt("New name:", chats[id].title);
+            if(n) { chats[id].title = n; saveToLocal(); }
         }
 
         renderHistory();
