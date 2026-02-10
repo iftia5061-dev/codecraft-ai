@@ -41,9 +41,10 @@ HTML_TEMPLATE = """
         /* ১. রিফ্রেশ বন্ধ এবং ফুল স্ক্রিন ফিক্স */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { 
-            background-color: #000; color: #fff; font-family: 'Inter', sans-serif; 
-            height: 100vh; width: 100vw; overflow: hidden; 
-            overscroll-behavior-y: contain; /* ফোন স্ক্রিন রিফ্রেশ আটকাবে */
+        background-color: #000; color: #fff; 
+        height: 100%; width: 100%; overflow: hidden; 
+        overscroll-behavior: none !important; /* রিফ্রেশ পুরোপুরি বন্ধ করবে */
+        position: fixed; /* স্ক্রিন নড়াচড়া বন্ধ করবে */
         }
         
         #app-container { display: flex; height: 100vh; width: 100vw; position: relative; }
@@ -74,9 +75,10 @@ HTML_TEMPLATE = """
         .ad-space { width: 100%; height: 60px; background: #111; border: 1px dashed #333; margin: 5px auto; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #444; }
         
         #chat-window { 
-            flex-grow: 1; padding: 20px; overflow-y: auto; 
-            display: flex; flex-direction: column; gap: 15px; 
-            scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
+        flex-grow: 1; padding: 20px; 
+        overflow-y: auto !important; /* শুধুমাত্র চ্যাট উইন্ডো স্ক্রল হবে */
+        display: flex; flex-direction: column; gap: 15px; 
+        -webkit-overflow-scrolling: touch; 
         }
 
         /* চ্যাট বাবল */
@@ -158,11 +160,41 @@ HTML_TEMPLATE = """
             chats[id].messages.forEach(m => appendMessage(m.role, m.text));
         }
 
-        function deleteChat(id) {
-            delete chats[id];
-            localStorage.setItem('loom_chats', JSON.stringify(chats));
-            renderHistory();
-            if(currentChatId == id) startNewChat();
+       function loadChat(id) {
+        currentChatId = id;
+        const win = document.getElementById('chat-window');
+        win.innerHTML = ''; // আগের চ্যাট পরিষ্কার করা
+    
+        // সাইডবার বন্ধ করা (মোবাইলের জন্য)
+        document.getElementById('sidebar').classList.remove('active');
+    
+        // মেসেজগুলো আবার দেখানো
+        if (chats[id] && chats[id].messages) {
+        chats[id].messages.forEach(m => {
+            appendMessage(m.role, m.text);
+        });
+        }
+    }
+
+// হিস্ট্রি রেন্ডার করার সময় টাইটেল ক্লিক ঠিক করা
+    function renderHistory() {
+    const list = document.getElementById('historyList');
+    list.innerHTML = '';
+    Object.keys(chats).sort((a, b) => b - a).forEach(id => {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        // পুরো আইটেমে ক্লিক করলে চ্যাট লোড হবে
+        item.innerHTML = `
+            <div onclick="loadChat('${id}')" style="flex-grow:1; cursor:pointer;">
+                📄 ${chats[id].title}
+            </div>
+            <div class="action-btns">
+                <button onclick="event.stopPropagation(); renameChat('${id}')">✏️</button>
+                <button onclick="event.stopPropagation(); deleteChat('${id}')">🗑️</button>
+            </div>
+        `;
+        list.appendChild(item);
+        });
         }
 
         function renameChat(id) {
@@ -237,5 +269,6 @@ def chat():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
