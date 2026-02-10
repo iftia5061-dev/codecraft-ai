@@ -5,7 +5,7 @@ import google.generativeai as genai
 
 app = Flask(__name__)
 
-# ১. এপিআই কনফিগারেশন (Vercel Environment Variables)
+# ১. এপিআই কনফিগারেশন
 API_KEYS = [
     os.environ.get("API_KEY_1", ""),
     os.environ.get("API_KEY_2", ""),
@@ -27,29 +27,28 @@ def generate_image_url(prompt):
     seed = random.randint(0, 999999)
     return f"https://pollinations.ai/p/{prompt.replace(' ', '%20')}?width=1024&height=1024&seed={seed}"
 
-# ২. প্রফেশনাল ইউজার ইন্টারফেস (নতুন কালার এবং ফিচারসহ)
-# ২. প্রফেশনাল ইউজার ইন্টারফেস (ফোন রেসপন্সিভ এবং রিফ্রেশ ফিক্সসহ)
+# ২. প্রফেশনাল ইউজার ইন্টারফেস (রিফ্রেশ এবং স্ক্রল ফিক্সসহ)
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CodeCraft AI</title>
+    <title>LOOM AI</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        /* ১. রিফ্রেশ বন্ধ এবং ফুল স্ক্রিন ফিক্স */
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        /* রিফ্রেশ বন্ধ করার জন্য মূল সেটিং */
         html, body { 
-        background-color: #000; color: #fff; 
-        height: 100%; width: 100%; overflow: hidden; 
-        overscroll-behavior: none !important; /* রিফ্রেশ পুরোপুরি বন্ধ করবে */
-        position: fixed; /* স্ক্রিন নড়াচড়া বন্ধ করবে */
+            background-color: #000; color: #fff; font-family: 'Inter', sans-serif; 
+            height: 100%; width: 100%; overflow: hidden; 
+            overscroll-behavior-y: none !important; 
+            position: fixed; 
         }
         
         #app-container { display: flex; height: 100vh; width: 100vw; position: relative; }
 
-        /* ২. সাইডবার - ফোনে স্লাইড হয়ে আসবে */
         #sidebar { 
             width: 280px; background-color: #0a0a0a; border-right: 1px solid #222; 
             display: flex; flex-direction: column; padding: 15px; 
@@ -62,30 +61,27 @@ HTML_TEMPLATE = """
             .menu-toggle { display: block !important; }
         }
 
-        /* ৩. মেনু বাটন (☰) */
         .menu-toggle {
             display: none; position: fixed; top: 15px; left: 15px;
             background: #1a1a1a; color: white; border: 1px solid #333;
             padding: 8px 12px; border-radius: 8px; z-index: 1001; cursor: pointer;
         }
 
-        /* ৪. মেইন চ্যাট এরিয়া */
         #main { flex-grow: 1; display: flex; flex-direction: column; width: 100%; }
         .header { padding: 15px; text-align: center; border-bottom: 1px solid #222; background: #000; padding-top: 55px; }
-        .ad-space { width: 100%; height: 60px; background: #111; border: 1px dashed #333; margin: 5px auto; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #444; }
         
+        /* চ্যাট উইন্ডো স্ক্রল ফিক্স */
         #chat-window { 
-        flex-grow: 1; padding: 20px; 
-        overflow-y: auto !important; /* শুধুমাত্র চ্যাট উইন্ডো স্ক্রল হবে */
-        display: flex; flex-direction: column; gap: 15px; 
-        -webkit-overflow-scrolling: touch; 
+            flex-grow: 1; padding: 20px; 
+            overflow-y: auto !important; 
+            display: flex; flex-direction: column; gap: 15px; 
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
         }
 
-        /* চ্যাট বাবল */
         .user-msg { background: #0056b3; color: white; padding: 12px 16px; border-radius: 18px 18px 0 18px; align-self: flex-end; max-width: 80%; }
         .bot-msg { background: #1a1a1a; color: #eee; padding: 12px 16px; border-radius: 18px 18px 18px 0; align-self: flex-start; max-width: 80%; border: 1px solid #333; }
 
-        /* ইনপুট বক্স */
         .input-container { padding: 20px; border-top: 1px solid #222; display: flex; gap: 10px; background: #000; padding-bottom: 30px; }
         input { flex-grow: 1; background: #111; border: 1px solid #333; padding: 14px; border-radius: 12px; color: white; outline: none; font-size: 16px; }
         .btn-send { background: #0056b3; border: none; width: 50px; height: 50px; border-radius: 50%; color: white; cursor: pointer; font-size: 20px; }
@@ -93,7 +89,7 @@ HTML_TEMPLATE = """
         .btn-new { background: #0056b3; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 20px; }
         .history-list { flex-grow: 1; overflow-y: auto; }
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-radius: 6px; margin-bottom: 8px; background: #161616; cursor: pointer; font-size: 13px; }
-        .action-btns button { background: none; border: none; color: #666; cursor: pointer; margin-left: 5px; }
+        .action-btns button { background: none; border: none; color: #666; cursor: pointer; margin-left: 8px; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -108,7 +104,7 @@ HTML_TEMPLATE = """
         <div id="main">
             <div class="header">
                 <h3>LOOM AI</h3>
-                <div class="ad-space">
+                <div style="margin-top:10px;">
                     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-app-pub-6478801956648313" crossorigin="anonymous"></script>
                     <ins class="adsbygoogle" style="display:inline-block;width:320px;height:50px" data-ad-client="ca-app-pub-6478801956648313" data-ad-slot="5044703146"></ins>
                     <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
@@ -125,21 +121,31 @@ HTML_TEMPLATE = """
     </div>
 
     <script>
-        // আপনার আগের সব স্ক্রিপ্ট লজিক (chats, renderHistory, send, loadChat, etc.) এখানে হুবহু থাকবে
         let currentChatId = Date.now();
         let chats = JSON.parse(localStorage.getItem('loom_chats')) || {};
+
+        // রিফ্রেশ বন্ধ করার টাচ স্ক্রিপ্ট
+        let touchStart;
+        document.addEventListener('touchstart', (e) => { touchStart = e.touches[0].pageY; }, {passive: false});
+        document.addEventListener('touchmove', (e) => {
+            const touchMove = e.touches[0].pageY;
+            const chatWin = document.getElementById('chat-window');
+            if (chatWin.scrollTop === 0 && touchMove > touchStart) {
+                if (e.cancelable) e.preventDefault();
+            }
+        }, {passive: false});
 
         function renderHistory() {
             const list = document.getElementById('historyList');
             list.innerHTML = '';
-            Object.keys(chats).reverse().forEach(id => {
+            Object.keys(chats).sort((a, b) => b - a).forEach(id => {
                 const item = document.createElement('div');
                 item.className = 'history-item';
                 item.innerHTML = `
-                    <span onclick="loadChat('${id}')">📄 ${chats[id].title}</span>
+                    <div onclick="loadChat('${id}')" style="flex-grow:1;">📄 ${chats[id].title}</div>
                     <div class="action-btns">
-                        <button onclick="renameChat('${id}')">Rename</button>
-                        <button onclick="deleteChat('${id}')">Delete</button>
+                        <button onclick="event.stopPropagation(); renameChat('${id}')">Rename</button>
+                        <button onclick="event.stopPropagation(); deleteChat('${id}')">Delete</button>
                     </div>
                 `;
                 list.appendChild(item);
@@ -150,55 +156,29 @@ HTML_TEMPLATE = """
             currentChatId = Date.now();
             document.getElementById('chat-window').innerHTML = '';
             document.getElementById('sidebar').classList.remove('active');
-            document.getElementById('userInput').focus();
         }
 
         function loadChat(id) {
+            if (!chats[id]) return;
             currentChatId = id;
-            document.getElementById('chat-window').innerHTML = '';
-            document.getElementById('sidebar').classList.remove('active');
+            const win = document.getElementById('chat-window');
+            win.innerHTML = '';
             chats[id].messages.forEach(m => appendMessage(m.role, m.text));
+            document.getElementById('sidebar').classList.remove('active');
+            win.scrollTo(0, win.scrollHeight);
         }
 
-       function loadChat(id) {
-        currentChatId = id;
-        const win = document.getElementById('chat-window');
-        win.innerHTML = ''; // আগের চ্যাট পরিষ্কার করা
-    
-        // সাইডবার বন্ধ করা (মোবাইলের জন্য)
-        document.getElementById('sidebar').classList.remove('active');
-    
-        // মেসেজগুলো আবার দেখানো
-        if (chats[id] && chats[id].messages) {
-        chats[id].messages.forEach(m => {
-            appendMessage(m.role, m.text);
-        });
-        }
-    }
-
-// হিস্ট্রি রেন্ডার করার সময় টাইটেল ক্লিক ঠিক করা
-    function renderHistory() {
-    const list = document.getElementById('historyList');
-    list.innerHTML = '';
-    Object.keys(chats).sort((a, b) => b - a).forEach(id => {
-        const item = document.createElement('div');
-        item.className = 'history-item';
-        // পুরো আইটেমে ক্লিক করলে চ্যাট লোড হবে
-        item.innerHTML = `
-            <div onclick="loadChat('${id}')" style="flex-grow:1; cursor:pointer;">
-                📄 ${chats[id].title}
-            </div>
-            <div class="action-btns">
-                <button onclick="event.stopPropagation(); renameChat('${id}')">✏️</button>
-                <button onclick="event.stopPropagation(); deleteChat('${id}')">🗑️</button>
-            </div>
-        `;
-        list.appendChild(item);
-        });
+        function deleteChat(id) {
+            if(confirm("Delete this chat?")) {
+                delete chats[id];
+                localStorage.setItem('loom_chats', JSON.stringify(chats));
+                renderHistory();
+                startNewChat();
+            }
         }
 
         function renameChat(id) {
-            const newName = prompt("Enter new name:", chats[id].title);
+            const newName = prompt("New name:", chats[id].title);
             if(newName) {
                 chats[id].title = newName;
                 localStorage.setItem('loom_chats', JSON.stringify(chats));
@@ -248,7 +228,7 @@ HTML_TEMPLATE = """
                 localStorage.setItem('loom_chats', JSON.stringify(chats));
                 renderHistory();
             } catch (e) {
-                tempBotMsg.innerText = "Error: Could not connect to server.";
+                tempBotMsg.innerText = "Error: Connection failed.";
             }
         }
 
@@ -257,6 +237,7 @@ HTML_TEMPLATE = """
 </body>
 </html>
 """
+
 @app.route('/')
 def index(): return render_template_string(HTML_TEMPLATE)
 
@@ -269,6 +250,3 @@ def chat():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-
