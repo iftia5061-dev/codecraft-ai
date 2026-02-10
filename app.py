@@ -1,163 +1,241 @@
-import streamlit as st
-import google.generativeai as genai
-import sqlite3
-import time
+import os
 import random
+from flask import Flask, render_template_string, request, jsonify
+import google.generativeai as genai
 
-# ১. ডাটাবেজ সেটআপ
-def init_db():
-    conn = sqlite3.connect('gemini_chats_v3.db', check_same_thread=False)
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS chat_history 
-                  (id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                   session_id TEXT, 
-                   chat_title TEXT, 
-                   role TEXT, 
-                   content TEXT)''')
-    conn.commit()
-    return conn
+app = Flask(__name__)
 
-conn = init_db()
-
-# ২. এপিআই কনফিগারেশন (মাল্টিপল এপিআই কী ব্যবহারের জন্য)
-# আপনার সব জিমেইল থেকে নেওয়া এপিআই কীগুলো এই লিস্টে বসান
+# ১. এপিআই কনফিগারেশন
 API_KEYS = [
-    st.secrets.get("API_KEY_1", ""),
-    st.secrets.get("API_KEY_2", ""),
-    st.secrets.get("API_KEY_3", "")
+    os.environ.get("API_KEY_1", ""),
+    os.environ.get("API_KEY_2", ""),
+    os.environ.get("API_KEY_3", "")
 ]
 
-def get_configured_model():
-    # র্যান্ডমলি একটি এপিআই কী সিলেক্ট করা হচ্ছে যাতে লিমিট না আসে
+def get_ai_response(prompt):
     active_key = random.choice([k for k in API_KEYS if k])
-    if not active_key:
-        st.error("Secrets-এ কোনো API Key পাওয়া যায়নি!")
-        st.stop()
-    genai.configure(api_key=active_key)
-    return genai.GenerativeModel('gemini-3-flash-preview')
+    if not active_key: return "API Key missing!"
+    try:
+        genai.configure(api_key=active_key)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        return f"Error: {str(e)}"
 
-# ৩. ইমেজ জেনারেশন ফাংশন (ফ্রি এবং আনলিমিটেড)
-def generate_image(prompt):
+def generate_image_url(prompt):
+    # ইমেজ তৈরির প্রম্পট থেকে 'image:' শব্দটা বাদ দিয়ে ক্লিন করা
+    clean_prompt = prompt.replace("image:", "").strip()
     seed = random.randint(0, 999999)
-    # পোলিনেশন এআই ব্যবহার করা হয়েছে যা আপনার কমান্ড অনুযায়ী ছবি দেবে
-    image_url = f"https://pollinations.ai/p/{prompt.replace(' ', '%20')}?width=1024&height=1024&seed={seed}"
-    return image_url
+    # পোলিনেশন এআই সরাসরি ইমেজ রিটার্ন করে
+    return f"https://pollinations.ai/p/{clean_prompt.replace(' ', '%20')}?width=1024&height=1024&seed={seed}"
 
-# ৪. ইন্টারফেস ডিজাইন
-st.set_page_config(page_title="CodeCraft AI", layout="wide", page_icon="🚀")
-
-st.markdown("""
+# ২. সম্পূর্ণ রেসপন্সিভ ইউআই (Ads + Image Fix + Scrollbar)
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LOOM AI</title>
     <style>
-    /* মোবাইলে টাচ এবং স্ক্রল সচল করার জন্য */
-    html, body, [data-testid="stAppViewContainer"], .main {
-        background-color: #000000 !important;
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        touch-action: pan-y !important;
-    }
-    .stSidebar { background-color: #000000; border-right: 1px solid #333; }
-    
-    /* মেসেজ বক্স ডিজাইন */
-    .bot-message { background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px solid #333; color: white; margin-bottom: 10px; }
-    .user-message { background: #0056b3; padding: 15px; border-radius: 12px; color: white; margin-bottom: 10px; }
-    
-    /* টেক্সট এবং টাইটেল কালার */
-    h1, h2, h3, p, span, label { color: #ffffff !important; }
-    .developer-tag { color: #aaaaaa; font-size: 14px; margin-bottom: 20px; }
-    
-    /* ইমেজ স্টাইল */
-    .gen-image { border-radius: 15px; border: 2px solid #333; margin-top: 10px; width: 100%; }
-    </style>
-""", unsafe_allow_html=True)
-
-if "current_session" not in st.session_state:
-    st.session_state.current_session = str(time.time())
-
-# ৫. সাইডবার লজিক
-with st.sidebar:
-    st.title("💬 History")
-    if st.button("＋ New Chat", use_container_width=True):
-        st.session_state.current_session = str(time.time())
-        st.rerun()
-    st.markdown("---")
-    c = conn.cursor()
-    c.execute('SELECT DISTINCT session_id, chat_title FROM chat_history GROUP BY session_id ORDER BY id DESC')
-    sessions = c.fetchall()
-    for sid, title in sessions:
-        col1, col2 = st.columns([5, 1])
-        with col1:
-            if st.button(f"📄 {title[:18]}", key=sid, use_container_width=True):
-                st.session_state.current_session = sid
-                st.rerun()
-        with col2:
-            if st.button("delete", key=f"del_{sid}"):
-                c.execute('DELETE FROM chat_history WHERE session_id=?', (sid,))
-                conn.commit()
-                st.rerun()
-
-# ৬. মূল উইন্ডো
-st.title("🚀 CodeCraft AI")
-st.markdown('<p class="developer-tag">Developed by: <b>IFTI</b></p>', unsafe_allow_html=True)
-st.write("---")
-
-# চ্যাট হিস্ট্রি লোড করা
-c.execute('SELECT role, content FROM chat_history WHERE session_id=? ORDER BY id ASC', (st.session_state.current_session,))
-history_data = c.fetchall()
-
-for role, content in history_data:
-    if role == "user":
-        st.markdown(f'<div class="user-message">{content}</div>', unsafe_allow_html=True)
-    else:
-        st.markdown(f'<div class="bot-message">{content}</div>', unsafe_allow_html=True)
-
-# ৭. চ্যাট ইনপুট এবং স্মার্ট রেসপন্স লজিক
-if prompt := st.chat_input("Ask anything or type 'image: sunset'"):
-    # ইউজারের মেসেজ
-    st.markdown(f'<div class="user-message">{prompt}</div>', unsafe_allow_html=True)
-    title = prompt[:30]
-    
-    # ডাটাবেজে ইউজারের মেসেজ সেভ
-    c.execute('INSERT INTO chat_history (session_id, chat_title, role, content) VALUES (?, ?, ?, ?)', 
-              (st.session_state.current_session, title, "user", prompt))
-    conn.commit()
-
-    with st.spinner("Processing..."):
-        # --- ইমেজ জেনারেশন পার্ট (শুধুমাত্র ইমেজ দিবে) ---
-        if prompt.lower().startswith("image:"):
-            img_prompt = prompt[6:].strip()
-            img_url = generate_image(img_prompt)
-            
-            # সরাসরি HTML দিয়ে ইমেজ দেখাচ্ছি যাতে কোড না আসে
-            st.markdown(f'''
-                <div class="bot-message">
-                    <p>🎨 Here is your requested image:</p>
-                    <img src="{img_url}" class="gen-image">
-                </div>
-            ''', unsafe_allow_html=True)
-            
-            # ডাটাবেজে শুধু টেক্সট টুকু সেভ করছি
-            c.execute('INSERT INTO chat_history (session_id, chat_title, role, content) VALUES (?, ?, ?, ?)', 
-                      (st.session_state.current_session, title, "assistant", f"Generated Image: {img_prompt}"))
-            conn.commit()
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         
-        # --- সাধারণ চ্যাট বা কোড পার্ট ---
-        else:
-            try:
-                model = get_configured_model()
-                # ইনস্ট্রাকশন আরও কড়া করে দেওয়া হয়েছে যেন বাড়তি কথা না বলে
-                system_instruction = (
-                    "You are CodeCraft AI. If the user asks for code, provide ONLY clean code. "
-                    "If they ask a question, answer concisely. Do not mention image generation here."
-                )
+        html, body { 
+            background-color: #000; color: #fff; font-family: 'Inter', sans-serif; 
+            height: 100%; width: 100%; overflow: hidden; 
+            overscroll-behavior: none !important;
+            position: fixed;
+        }
+        
+        #app-container { display: flex; height: 100vh; width: 100vw; position: relative; }
+
+        #sidebar { 
+            width: 280px; background-color: #0a0a0a; border-right: 1px solid #222; 
+            display: flex; flex-direction: column; padding: 15px; 
+            transition: 0.3s ease-in-out; z-index: 1000;
+        }
+        
+        @media (max-width: 768px) {
+            #sidebar { position: absolute; left: -280px; height: 100%; }
+            #sidebar.active { left: 0; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
+        }
+
+        .menu-toggle {
+            position: fixed; top: 15px; left: 15px;
+            background: #1a1a1a; color: white; border: 1px solid #333;
+            padding: 8px 12px; border-radius: 8px; z-index: 1001; cursor: pointer;
+        }
+
+        #main { flex-grow: 1; display: flex; flex-direction: column; width: 100%; overflow: hidden; }
+        
+        /* হেডার ও অ্যাড স্লট */
+        .header { padding: 15px; text-align: center; border-bottom: 1px solid #222; background: #000; padding-top: 55px; }
+        .ad-container { 
+            width: 100%; min-height: 50px; background: #0a0a0a; 
+            margin: 10px 0; display: flex; justify-content: center; align-items: center;
+        }
+
+        /* কাস্টম স্ক্রলবার (আপনার লাঠি) */
+        #chat-window { 
+            flex-grow: 1; padding: 20px; 
+            overflow-y: scroll; 
+            display: flex; flex-direction: column; gap: 15px; 
+        }
+
+        #chat-window::-webkit-scrollbar { width: 10px; }
+        #chat-window::-webkit-scrollbar-track { background: #000; }
+        #chat-window::-webkit-scrollbar-thumb { 
+            background: #0056b3; border-radius: 10px; border: 2px solid #000;
+        }
+
+        .user-msg { background: #0056b3; color: white; padding: 12px 16px; border-radius: 18px 18px 0 18px; align-self: flex-end; max-width: 85%; word-wrap: break-word; }
+        .bot-msg { background: #1a1a1a; color: #eee; padding: 12px 16px; border-radius: 18px 18px 18px 0; align-self: flex-start; max-width: 85%; border: 1px solid #333; }
+        .bot-msg img { width: 100%; border-radius: 10px; margin-top: 10px; border: 1px solid #444; }
+
+        .input-container { padding: 20px; border-top: 1px solid #222; display: flex; gap: 10px; background: #000; padding-bottom: 30px; }
+        input { flex-grow: 1; background: #111; border: 1px solid #333; padding: 14px; border-radius: 12px; color: white; outline: none; font-size: 16px; }
+        .btn-send { background: #0056b3; border: none; width: 50px; height: 50px; border-radius: 50%; color: white; cursor: pointer; font-size: 20px; }
+        
+        .btn-new { background: #0056b3; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 20px; }
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-radius: 6px; margin-bottom: 8px; background: #161616; cursor: pointer; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <div class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('active')">☰</div>
+        
+        <div id="sidebar">
+            <button class="btn-new" onclick="startNewChat()">＋ New Chat</button>
+            <div id="historyList"></div>
+        </div>
+        
+        <div id="main">
+            <div class="header">
+                <h3>LOOM AI</h3>
+                <div class="ad-container">
+                    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-app-pub-6478801956648313" crossorigin="anonymous"></script>
+                    <ins class="adsbygoogle" style="display:inline-block;width:320px;height:50px" data-ad-client="ca-app-pub-6478801956648313" data-ad-slot="5044703146"></ins>
+                    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+                </div>
+            </div>
+
+            <div id="chat-window"></div>
+
+            <div class="input-container">
+                <input type="text" id="userInput" placeholder="Type message or 'image: cat'..." onkeypress="if(event.key==='Enter') send()">
+                <button class="btn-send" onclick="send()">➔</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentChatId = Date.now();
+        let chats = JSON.parse(localStorage.getItem('loom_chats')) || {};
+
+        function loadChat(id) {
+            currentChatId = id;
+            const win = document.getElementById('chat-window');
+            win.innerHTML = '';
+            chats[id].messages.forEach(m => appendMessage(m.role, m.text));
+            document.getElementById('sidebar').classList.remove('active');
+            setTimeout(() => { win.scrollTop = win.scrollHeight; }, 100);
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            list.innerHTML = '';
+            Object.keys(chats).sort((a, b) => b - a).forEach(id => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <div onclick="loadChat('${id}')" style="flex-grow:1;">📄 ${chats[id].title}</div>
+                    <div style="display:flex; gap:10px;">
+                        <span onclick="deleteChat('${id}')">🗑️</span>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function startNewChat() {
+            currentChatId = Date.now();
+            document.getElementById('chat-window').innerHTML = '';
+            document.getElementById('sidebar').classList.remove('active');
+        }
+
+        function appendMessage(role, text) {
+            const win = document.getElementById('chat-window');
+            const div = document.createElement('div');
+            div.className = role === 'user' ? 'user-msg' : 'bot-msg';
+            div.innerHTML = text;
+            win.appendChild(div);
+            win.scrollTop = win.scrollHeight;
+        }
+
+        async function send() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if(!text) return;
+            
+            if(!chats[currentChatId]) chats[currentChatId] = { title: text.substring(0, 15), messages: [] };
+            
+            appendMessage('user', text);
+            chats[currentChatId].messages.push({role:'user', text: text});
+            input.value = '';
+
+            // 'Processing' মেসেজ দেখানো
+            const tempMsg = document.createElement('div');
+            tempMsg.className = 'bot-msg';
+            tempMsg.innerText = 'Thinking...';
+            document.getElementById('chat-window').appendChild(tempMsg);
+
+            try {
+                const res = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message: text})
+                });
+                const data = await res.json();
+                tempMsg.remove();
                 
-                response = model.generate_content([system_instruction, prompt])
-                full_response = response.text
-                
-                st.markdown(f'<div class="bot-message">{full_response}</div>', unsafe_allow_html=True)
-                
-                c.execute('INSERT INTO chat_history (session_id, chat_title, role, content) VALUES (?, ?, ?, ?)', 
-                          (st.session_state.current_session, title, "assistant", full_response))
-                conn.commit()
-                
-            except Exception as e:
-                st.error("API Error! Please check your keys or connection.")
+                let reply = data.image ? `<img src="${data.image}" alt="AI Image">` : data.reply;
+                appendMessage('bot', reply);
+                chats[currentChatId].messages.push({role:'bot', text: reply});
+                localStorage.setItem('loom_chats', JSON.stringify(chats));
+                renderHistory();
+            } catch (e) {
+                tempMsg.innerText = "Connection Error!";
+            }
+        }
+
+        function deleteChat(id) {
+            delete chats[id];
+            localStorage.setItem('loom_chats', JSON.stringify(chats));
+            renderHistory();
+            startNewChat();
+        }
+
+        renderHistory();
+    </script>
+</body>
+</html>
+"""
+
+@app.route('/')
+def index(): return render_template_string(HTML_TEMPLATE)
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    msg = request.json.get("message", "")
+    # ইমেজ রিকোয়েস্ট চেক করা
+    if msg.lower().startswith("image:"):
+        img_url = generate_image_url(msg)
+        return jsonify({"image": img_url})
+    
+    # সাধারণ টেক্সট রিপ্লাই
+    reply = get_ai_response(msg)
+    return jsonify({"reply": reply})
+
+if __name__ == '__main__':
+    app.run(debug=True)
