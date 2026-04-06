@@ -1,343 +1,247 @@
-import React, { useState, useEffect, useRef } from 'react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+import os
+import random
+from flask import Flask, render_template_string, request, jsonify
+import google.generativeai as genai
 
-/**
- * SMART AI SPREADSHEET PRO (v6.2)
- * Final Fixed Version with Vercel Env Support & Key Rotation
- */
+app = Flask(__name__)
 
-function App() {
-  const [inputText, setInputText] = useState("");
-  const [searchTerm, setSearchTerm] = useState(""); 
-  const [tableTitle, setTableTitle] = useState("");
-  const [columns, setColumns] = useState(["SI No", "Name", "Description", "Status"]);
-  const [rows, setRows] = useState(Array.from({ length: 5 }, (_, i) => ({ "SI No": i + 1 })));
-  const [history, setHistory] = useState([]);
-  const [currentTableId, setCurrentTableId] = useState(null); 
-  const [isLoading, setIsLoading] = useState(false);
+# ১. এপিআই কনফিগারেশন
+API_KEYS = [
+    os.environ.get("API_KEY_1", ""),
+    os.environ.get("API_KEY_2", ""),
+    os.environ.get("API_KEY_3", "")
+]
 
-  // --- API KEYS LOGIC: VERCEL ENV FIRST, THEN INTERNAL ---
-  const API_KEYS = [
-    process.env.REACT_APP_GEMINI_KEY_1, // Vercel Environment Variable 1
-    process.env.REACT_APP_GEMINI_KEY_2, // Vercel Environment Variable 2
-    process.env.REACT_APP_GEMINI_KEY_3, // Vercel Environment Variable 3
-    "YOUR_INTERNAL_KEY_HERE"             // Backup Internal Key
-  ].filter(key => key && key !== "" && key !== "YOUR_INTERNAL_KEY_HERE"); 
-
-  useEffect(() => {
-    const saved = localStorage.getItem('ai_sheet_data');
-    const savedHistory = localStorage.getItem('ai_sheet_history');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setColumns(parsed.columns);
-      setRows(parsed.rows);
-      setTableTitle(parsed.title || "");
-      setCurrentTableId(parsed.id || null);
-    }
-    if (savedHistory) setHistory(JSON.parse(savedHistory));
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('ai_sheet_data', JSON.stringify({ id: currentTableId, columns, rows, title: tableTitle }));
-    if (currentTableId) {
-      const updatedHistory = history.map(item => 
-        item.id === currentTableId 
-        ? { ...item, columns, rows, title: tableTitle, date: new Date().toLocaleString() } 
-        : item
-      );
-      if (JSON.stringify(updatedHistory) !== JSON.stringify(history)) {
-        setHistory(updatedHistory);
-        localStorage.setItem('ai_sheet_history', JSON.stringify(updatedHistory));
-      }
-    }
-  }, [columns, rows, tableTitle, currentTableId, history]);
-
-  // --- UPDATED AI LOGIC WITH KEY ROTATION & ERROR HANDLING ---
-  const processAICommand = async () => {
-    if (!inputText) return;
-    
-    // Check if keys exist
-    if (API_KEYS.length === 0) {
-        alert("API Key missing! Please add REACT_APP_GEMINI_KEY_1 in Vercel settings.");
-        return;
-    }
-
-    setIsLoading(true);
-    let apiSuccess = false;
-    let quotaExceeded = false;
-
-    // Loop through all keys (Vercel keys first)
-    for (let i = 0; i < API_KEYS.length; i++) {
-      try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEYS[i]}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `Generate spreadsheet data for: "${inputText}". 
-                Return ONLY a clean JSON object with "columns" (array of strings) and "rows" (array of objects). 
-                Each row must have "SI No" starting from 1. 
-                Output must be valid JSON without any Markdown formatting like code blocks.`
-              }]
-            }]
-          })
-        });
-
-        const data = await response.json();
-
-        // 429 means Rate Limit - Try next key
-        if (response.status === 429) {
-          console.warn(`Vercel Key ${i+1} limit reached. Trying next...`);
-          quotaExceeded = true;
-          continue; 
-        }
+def get_ai_response(prompt):
+    active_key = random.choice([k for k in API_KEYS if k])
+    if not active_key: return "API Key missing!"
+    try:
+        genai.configure(api_key=active_key)
+        model = genai.GenerativeModel('gemini-3-flash-preview')
         
-        if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-          let rawText = data.candidates[0].content.parts[0].text;
-          rawText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
-          
-          const cleanJson = JSON.parse(rawText);
-          if (cleanJson.columns && cleanJson.rows) {
-            setColumns(cleanJson.columns);
-            setRows(cleanJson.rows);
-            setTableTitle(inputText.toUpperCase());
-            setCurrentTableId(null); 
-            setInputText("");
-            apiSuccess = true;
-            break; 
-          }
+        # আপনার পরিচয় এবং উত্তরের স্টাইল এখানে সেট করা হয়েছে
+        system_instruction = """
+        You are LOOM AI. Your replies must be clean, professional, and well-structured using markdown.
+        DO NOT give long-winded answers. Be direct.
+        
+        About your creator (Provide only when asked about who made you):
+        - Name: Md Aminul Islam.
+        - Role: Full-stack Web Developer & AI Enthusiast.
+        - Skills: Python, Flask, JavaScript, and AI Integration.
+        """
+        
+        response = model.generate_content(system_instruction + " User Prompt: " + prompt)
+        return response.text
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+def generate_image_url(prompt):
+    clean_prompt = prompt.replace("image:", "").strip()
+    seed = random.randint(0, 999999)
+    return f"https://pollinations.ai/p/{clean_prompt.replace(' ', '%20')}?width=1024&height=1024&seed={seed}"
+
+# ২. প্রফেশনাল ইন্টারফেস (ইমেজ ডাউনলোডসহ)
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/png" href="https://i.ibb.co/Lz9f1zY/logo.png">
+    <title>LOOM AI</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { 
+            background-color: #000; color: #fff; font-family: 'Inter', 'Segoe UI', sans-serif; 
+            height: 100%; width: 100%; overflow: hidden; 
+            overscroll-behavior: none !important; position: fixed;
         }
-      } catch (error) {
-        console.error(`Error with Key ${i+1}:`, error);
-      }
-    }
+        #app-container { display: flex; height: 100vh; width: 100vw; position: relative; }
 
-    if (!apiSuccess) {
-      if (quotaExceeded) {
-        alert("All API keys are exhausted. Please wait 1 minute.");
-      } else {
-        alert("AI processing error. Falling back to local logic.");
-      }
-      
-      const text = inputText.toLowerCase();
-      let newCols = ["SI No", "Item", "Details", "Status"];
-      if (text.includes("student")) newCols = ["SI No", "Student Name", "Roll ID", "Class", "Result", "Fees"];
-      if (text.includes("salary")) newCols = ["SI No", "Employee Name", "Basic", "Overtime", "Bonus %", "Total Salary"];
-      
-      setColumns(newCols);
-      setRows(Array.from({ length: 5 }, (_, i) => {
-        const row = { "SI No": i + 1 };
-        newCols.slice(1).forEach(c => row[c] = "");
-        return row;
-      }));
-    }
-    setIsLoading(false);
-  };
+        #sidebar { 
+            width: 280px; background-color: #0d0d0d; border-right: 1px solid #222; 
+            display: flex; flex-direction: column; padding: 15px; 
+            transition: 0.3s ease-in-out; z-index: 1000;
+        }
+        @media (max-width: 768px) {
+            #sidebar { position: absolute; left: -280px; height: 100%; }
+            #sidebar.active { left: 0; box-shadow: 10px 0 20px rgba(0,0,0,0.8); }
+        }
 
-  const handleCellChange = (rIdx, col, val) => {
-    const updatedRows = [...rows];
-    updatedRows[rIdx][col] = val;
-    if (col === "Basic" || col === "Overtime" || col === "Bonus %") {
-      const basic = parseFloat(updatedRows[rIdx]["Basic"]) || 0;
-      const ot = parseFloat(updatedRows[rIdx]["Overtime"]) || 0;
-      const bonus = parseFloat(updatedRows[rIdx]["Bonus %"]) || 0;
-      updatedRows[rIdx]["Total Salary"] = (basic + ot + (basic * bonus / 100)).toFixed(2);
-    }
-    setRows(updatedRows);
-  };
+        .menu-toggle {
+            position: fixed; top: 15px; left: 15px;
+            background: #1a1a1a; color: white; border: 1px solid #333;
+            padding: 8px 12px; border-radius: 8px; z-index: 1001; cursor: pointer;
+        }
 
-  const getColumnTotal = (colName) => {
-    if (colName === "SI No") return "TOTAL";
-    const total = rows.reduce((sum, row) => {
-      const val = parseFloat(row[colName]);
-      return isNaN(val) ? sum : sum + val;
-    }, 0);
-    return total === 0 ? "" : total.toLocaleString();
-  };
+        #main { flex-grow: 1; display: flex; flex-direction: column; width: 100%; overflow: hidden; }
+        .header { padding: 15px; text-align: center; border-bottom: 1px solid #222; background: #000; padding-top: 55px; }
 
-  const deleteRow = (idx) => {
-    const updatedRows = rows.filter((_, i) => i !== idx).map((row, i) => ({ ...row, "SI No": i + 1 }));
-    setRows(updatedRows);
-  };
+        #chat-window { 
+            flex-grow: 1; padding: 20px; 
+            overflow-y: scroll; display: flex; flex-direction: column; gap: 15px; 
+        }
+        #chat-window::-webkit-scrollbar { width: 8px; }
+        #chat-window::-webkit-scrollbar-thumb { background: #0056b3; border-radius: 10px; }
 
-  const deleteColumn = (colName) => {
-    if (colName === "SI No") return;
-    if (window.confirm(`Delete column "${colName}"?`)) {
-      setColumns(columns.filter(c => c !== colName));
-      setRows(rows.map(row => {
-        const newRow = { ...row };
-        delete newRow[colName];
-        return newRow;
-      }));
-    }
-  };
+        .user-msg { background: #0056b3; color: white; padding: 12px 16px; border-radius: 18px 18px 0 18px; align-self: flex-end; max-width: 85%; word-wrap: break-word; }
+        .bot-msg { background: #1a1a1a; color: #eee; padding: 12px 16px; border-radius: 18px 18px 18px 0; align-self: flex-start; max-width: 85%; border: 1px solid #333; line-height: 1.5; }
+        .bot-msg img { width: 100%; border-radius: 10px; margin-top: 10px; display: block; }
+        
+        /* ডাউনলোড বাটন স্টাইল */
+        .download-btn {
+            display: inline-block; margin-top: 8px; padding: 6px 12px;
+            background: #222; border: 1px solid #444; color: #00c3ff;
+            text-decoration: none; border-radius: 5px; font-size: 13px; cursor: pointer;
+        }
 
-  const saveToHistory = () => {
-    if (currentTableId) { alert("Table already synced! ✅"); return; }
-    const id = Date.now();
-    const newEntry = { id, title: tableTitle || "Untitled Table", date: new Date().toLocaleString(), columns, rows };
-    setHistory([newEntry, ...history]);
-    setCurrentTableId(id);
-    localStorage.setItem('ai_sheet_history', JSON.stringify([newEntry, ...history]));
-    alert("Saved to History! ✅");
-  };
+        pre { background: #000; padding: 12px; border-radius: 8px; overflow-x: auto; color: #0f0; border: 1px solid #333; margin: 10px 0; font-size: 14px; }
 
-  const deleteHistoryItem = (e, id) => {
-    e.stopPropagation();
-    if (window.confirm("Delete?")) {
-      const updated = history.filter(item => item.id !== id);
-      setHistory(updated);
-      localStorage.setItem('ai_sheet_history', JSON.stringify(updated));
-      if (currentTableId === id) setCurrentTableId(null);
-    }
-  };
+        .input-container { padding: 20px; border-top: 1px solid #222; display: flex; gap: 10px; background: #000; padding-bottom: 30px; }
+        input { flex-grow: 1; background: #111; border: 1px solid #333; padding: 14px; border-radius: 12px; color: white; outline: none; font-size: 16px; }
+        .btn-send { background: #0056b3; border: none; width: 50px; height: 50px; border-radius: 50%; color: white; cursor: pointer; font-size: 20px; }
 
-  const downloadPDF = () => {
-    const doc = new jsPDF('p', 'mm', 'a4');
-    doc.text(tableTitle || "Smart AI Report", 14, 15);
-    autoTable(doc, { startY: 25, head: [columns], body: rows.map(row => columns.map(c => row[c] || "")), theme: 'grid' });
-    doc.save(`${tableTitle || 'Report'}.pdf`);
-  };
-
-  const downloadExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-    XLSX.writeFile(workbook, `${tableTitle || 'AI_Spreadsheet'}.xlsx`);
-  };
-
-  const addColumn = () => {
-    const name = prompt("Column Name:");
-    if (name) setColumns([...columns, name]);
-  };
-
-  const clearTable = () => {
-    if (window.confirm("Clear?")) { setRows([{ "SI No": 1 }]); setTableTitle(""); setCurrentTableId(null); }
-  };
-
-  const filteredRows = rows.filter(row => 
-    Object.values(row).some(val => String(val).toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  const getCellClassName = (col, value) => {
-    let base = "w-full bg-transparent px-2 py-2 outline-none text-sm min-w-[120px] transition-all focus:bg-slate-700/50 ";
-    if (col === "SI No") return base + "text-blue-400 font-bold min-w-[50px] text-center";
-    if (col === "Total Salary") return base + "text-emerald-400 font-black";
-    const val = String(value).toLowerCase();
-    if (["paid", "success", "done"].includes(val)) return base + "text-emerald-400 font-bold";
-    if (["pending", "due"].includes(val)) return base + "text-amber-400 font-bold";
-    if (["failed", "absent"].includes(val)) return base + "text-red-400 font-bold";
-    return base + "text-slate-200";
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 p-2 md:p-8 font-sans">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6">
-        <div className="lg:col-span-3 order-1">
-          <header className="flex flex-col md:flex-row justify-between items-center mb-6 bg-slate-800 p-4 md:p-6 rounded-2xl border border-slate-700 shadow-xl gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-blue-400 via-emerald-400 to-indigo-400 bg-clip-text text-transparent italic">SMART SPREADSHEET AI</h1>
-              <p className="text-[10px] text-slate-500 font-bold tracking-widest mt-1">PRO VERSION v6.2</p>
-            </div>
-            <div className="flex flex-wrap justify-center gap-2">
-              <button onClick={saveToHistory} className={`${currentTableId ? 'bg-emerald-600' : 'bg-blue-600'} px-3 py-2 rounded-lg font-bold text-xs`}>
-                {currentTableId ? "SYNCED" : "SAVE"}
-              </button>
-              <button onClick={downloadExcel} className="bg-emerald-600 px-3 py-2 rounded-lg font-bold text-xs">EXCEL</button>
-              <button onClick={downloadPDF} className="bg-indigo-600 px-3 py-2 rounded-lg font-bold text-xs">PDF</button>
-            </div>
-          </header>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-             <div className="bg-slate-800 p-3 rounded-xl border border-slate-700 flex gap-2 shadow-lg">
-                <input type="text" className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 outline-none text-sm" placeholder="Ask AI (e.g. 5 mobile list)..." value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && processAICommand()} />
-                <button onClick={processAICommand} disabled={isLoading} className="bg-emerald-500 text-slate-900 px-4 py-2 rounded-lg font-bold">
-                  {isLoading ? "..." : "RUN"}
-                </button>
-             </div>
-             <div className="bg-slate-800 p-3 rounded-xl border border-slate-700 flex gap-2">
-                <input type="text" className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 outline-none text-sm" placeholder="Search data..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                <span className="flex items-center px-2">🔍</span>
-             </div>
-          </div>
-
-          <div className="bg-slate-800 p-4 rounded-xl mb-4 border border-slate-700 flex justify-between items-center">
-              <input type="text" className="flex-1 bg-transparent border-none outline-none text-xl font-bold text-emerald-400" placeholder="Table Name..." value={tableTitle} onChange={(e) => setTableTitle(e.target.value)} />
-              <button onClick={clearTable} className="text-xs font-bold text-red-500 border border-red-900/30 px-3 py-1 rounded">CLEAR</button>
-          </div>
-
-          <div className="bg-slate-800 rounded-2xl shadow-2xl overflow-hidden border border-slate-700 relative">
-            {isLoading && (
-              <div className="absolute inset-0 bg-slate-900/60 z-20 flex items-center justify-center backdrop-blur-sm">
-                <div className="text-emerald-400 font-bold animate-bounce text-sm">AI IS THINKING...</div>
-              </div>
-            )}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-slate-700">
-                  <tr>
-                    {columns.map((col, i) => (
-                      <th key={i} onClick={() => deleteColumn(col)} className="px-4 py-4 text-xs font-black uppercase border-r border-slate-600 cursor-pointer hover:bg-red-500/20 group transition-all min-w-[120px]">
-                        {col} <span className="text-red-400 ml-1 opacity-0 group-hover:opacity-100">✖</span>
-                      </th>
-                    ))}
-                    <th className="px-4 py-4 text-center w-[60px]">
-                      <button onClick={addColumn} className="bg-emerald-600 h-8 w-8 rounded-full font-bold">+</button>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-700">
-                  {filteredRows.map((row, rIdx) => (
-                    <tr key={rIdx} className="hover:bg-slate-700/30 group">
-                      {columns.map((col, cIdx) => (
-                        <td key={cIdx} className="border-r border-slate-700/50">
-                          <input type="text" value={row[col] || ""} onChange={(e) => handleCellChange(rIdx, col, e.target.value)} disabled={col === "SI No" || col === "Total Salary"} className={getCellClassName(col, row[col])} />
-                        </td>
-                      ))}
-                      <td className="text-center">
-                        <button onClick={() => deleteRow(rIdx)} className="opacity-0 group-hover:opacity-100 text-red-500 font-bold px-2">✖</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot className="bg-slate-900 font-bold border-t-2 border-slate-700">
-                  <tr>
-                    {columns.map((col, i) => (
-                      <td key={i} className="px-4 py-3 text-sm text-emerald-400 border-r border-slate-700">
-                        {getColumnTotal(col)}
-                      </td>
-                    ))}
-                    <td className="bg-slate-800/50"></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-            <div className="p-4 flex justify-between items-center text-xs text-slate-500">
-              <button onClick={() => setRows([...rows, { "SI No": rows.length + 1 }])} className="text-blue-400 font-bold hover:underline">+ ADD NEW ROW</button>
-              <div className="uppercase tracking-widest">Entries: {filteredRows.length}</div>
-            </div>
-          </div>
+        .btn-new { background: #0056b3; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 20px; text-align: center; }
+        .history-item { padding: 12px; border-radius: 8px; background: #161616; margin-bottom: 10px; cursor: pointer; border: 1px solid #222; }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <div class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('active')">☰</div>
+        <div id="sidebar">
+            <div class="btn-new" onclick="startNewChat()">＋ New Chat</div>
+            <div id="historyList"></div>
         </div>
-
-        <div className="lg:col-span-1 order-2 bg-slate-800 rounded-2xl p-4 border border-slate-700 h-[500px] lg:h-auto overflow-y-auto shadow-xl">
-          <h2 className="text-md font-bold text-emerald-400 uppercase mb-4 border-b border-slate-700 pb-2">History</h2>
-          <div className="space-y-3">
-            {history.length === 0 && <p className="text-xs text-slate-600 text-center py-10">No history found</p>}
-            {history.map((item) => (
-              <div key={item.id} onClick={() => { setColumns(item.columns); setRows(item.rows); setTableTitle(item.title); setCurrentTableId(item.id); }} className={`group bg-slate-900 p-3 rounded-xl border ${currentTableId === item.id ? 'border-emerald-500' : 'border-slate-700'} cursor-pointer hover:border-blue-500 relative transition-all`}>
-                <h4 className="font-bold text-slate-200 truncate pr-4 text-xs">{item.title}</h4>
-                <p className="text-[9px] text-slate-500 mt-1">{item.date}</p>
-                <button onClick={(e) => deleteHistoryItem(e, item.id)} className="absolute top-2 right-2 text-red-500 hover:text-red-300">✖</button>
-              </div>
-            ))}
-          </div>
+        
+        <div id="main">
+            <div class="header">
+                <h3>LOOM AI</h3>
+            </div>
+            <div id="chat-window"></div>
+            <div class="input-container">
+                <input type="text" id="userInput" placeholder="Ask anything or 'image: cat'..." onkeypress="if(event.key==='Enter') send()">
+                <button class="btn-send" onclick="send()">➔</button>
+            </div>
         </div>
-      </div>
     </div>
-  );
-}
 
-export default App;
+    <script>
+        let currentChatId = null;
+        let chats = JSON.parse(localStorage.getItem('loom_ai_chats')) || {};
+
+        function saveToLocal() {
+            localStorage.setItem('loom_ai_chats', JSON.stringify(chats));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            list.innerHTML = '';
+            Object.keys(chats).sort((a, b) => b - a).forEach(id => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `<div onclick="loadChat('${id}')">${chats[id].title}</div>`;
+                list.appendChild(item);
+            });
+        }
+
+        // ইমেজ ডাউনলোড ফাংশন
+        async function downloadImage(url) {
+            try {
+                const res = await fetch(url);
+                const blob = await res.blob();
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = "LOOM_AI_Image.png";
+                link.click();
+            } catch(e) { alert("Download failed!"); }
+        }
+
+        function appendMessage(role, text, isImage = false, save = true) {
+            const win = document.getElementById('chat-window');
+            const div = document.createElement('div');
+            div.className = role === 'user' ? 'user-msg' : 'bot-msg';
+            
+            if (isImage) {
+                div.innerHTML = `<img src="${text}"><button class="download-btn" onclick="downloadImage('${text}')">Download Image</button>`;
+            } else {
+                let formattedText = text.replace(/\\n/g, '<br>')
+                                        .replace(/\\*\\*(.*?)\\*\\*/g, '<b>$1</b>')
+                                        .replace(/```([\s\S]*?)```/g, '<pre>$1</pre>');
+                div.innerHTML = formattedText;
+            }
+            
+            win.appendChild(div);
+            win.scrollTo(0, win.scrollHeight);
+
+            if (save && currentChatId) {
+                if (!chats[currentChatId]) chats[currentChatId] = { title: text.substring(0, 20), messages: [] };
+                chats[currentChatId].messages.push({ role, text, isImage });
+                saveToLocal();
+            }
+        }
+
+        async function send() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            if (!currentChatId) startNewChat();
+            appendMessage('user', text);
+            input.value = '';
+
+            const loading = document.createElement('div');
+            loading.className = 'bot-msg';
+            loading.innerText = 'LOOM AI is thinking...';
+            document.getElementById('chat-window').appendChild(loading);
+
+            try {
+                const res = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+                const data = await res.json();
+                loading.remove();
+
+                if (data.image) {
+                    appendMessage('bot', data.image, true);
+                } else {
+                    appendMessage('bot', data.reply);
+                }
+            } catch (e) { loading.innerText = "Error: Connection failed."; }
+        }
+
+        function startNewChat() {
+            currentChatId = Date.now().toString();
+            document.getElementById('chat-window').innerHTML = '';
+            document.getElementById('sidebar').classList.remove('active');
+        }
+
+        function loadChat(id) {
+            currentChatId = id;
+            const win = document.getElementById('chat-window');
+            win.innerHTML = '';
+            chats[id].messages.forEach(m => appendMessage(m.role, m.text, m.isImage, false));
+            document.getElementById('sidebar').classList.remove('active');
+        }
+
+        renderHistory();
+        if (!currentChatId) startNewChat();
+    </script>
+</body>
+</html>
+"""
+
+@app.route('/')
+def index(): return render_template_string(HTML_TEMPLATE)
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    msg = request.json.get("message", "")
+    if msg.lower().startswith("image:"):
+        return jsonify({"image": generate_image_url(msg)})
+    return jsonify({"reply": get_ai_response(msg)})
+
+if __name__ == '__main__':
+    app.run(debug=True)
