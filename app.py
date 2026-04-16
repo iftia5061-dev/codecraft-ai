@@ -77,13 +77,14 @@ HTML_TEMPLATE = """
         // PLUG IN YOUR FIREBASE CREDENTIALS HERE
         // ══════════════════════════════════════════════
         const firebaseConfig = {
-            apiKey:            "YOUR_API_KEY",
-            authDomain:        "YOUR_AUTH_DOMAIN",
-            projectId:         "YOUR_PROJECT_ID",
-            storageBucket:     "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId:             "YOUR_APP_ID"
-        };
+  apiKey: "AIzaSyCa4ILv8tXw7zNeLaXKZMcHdmOcB7fpQsg",
+  authDomain: "codecraft-ai-e0c31.firebaseapp.com",
+  projectId: "codecraft-ai-e0c31",
+  storageBucket: "codecraft-ai-e0c31.firebasestorage.app",
+  messagingSenderId: "120391757852",
+  appId: "1:120391757852:web:dd52dc1b373d597bd96fd9",
+  measurementId: "G-NDH3Y3PWW8"
+};
         // ══════════════════════════════════════════════
 
         const app    = initializeApp(firebaseConfig);
