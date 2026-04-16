@@ -75,7 +75,6 @@ HTML_TEMPLATE = """
 
         // ══════════════════════════════════════════════
         // PLUG IN YOUR FIREBASE CREDENTIALS HERE
-    <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { 
     getAuth, 
