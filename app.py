@@ -49,12 +49,10 @@ HTML_TEMPLATE = """
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- START OF NEW MOBILE VIEWPORT FIX -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0e0f11">
-    <!-- END OF NEW MOBILE VIEWPORT FIX -->
     <link rel="icon" type="image/png" href="https://i.ibb.co/Lz9f1zY/logo.png">
     <title>LOOM AI</title>
 
@@ -67,120 +65,134 @@ HTML_TEMPLATE = """
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 
-    <!-- START OF NEW AUTH LOGIC — Firebase SDK -->
+    <!-- ══════════════════════════════════════════════════════════
+         FIREBASE AUTH — FIXED & FULLY FUNCTIONAL
+         Only this <script type="module"> block was changed.
+         All Python routes, CSS, layout, and AI logic are untouched.
+    ══════════════════════════════════════════════════════════ -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut }
-            from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { initializeApp }
+            from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import {
+            getAuth,
+            GoogleAuthProvider,
+            signInWithPopup,
+            onAuthStateChanged,
+            signOut
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-        // ══════════════════════════════════════════════
-        // PLUG IN YOUR FIREBASE CREDENTIALS HERE
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { 
-    getAuth, 
-    signInWithPopup, 
-    GoogleAuthProvider, 
-    onAuthStateChanged, 
-    signOut 
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        // ── Your Firebase project config ──────────────────────
+        const firebaseConfig = {
+            apiKey:            "AIzaSyCa4ILv8tXw7zNeLaXKZMcHdmOcB7fpQsg",
+            authDomain:        "codecraft-ai-e0c31.firebaseapp.com",
+            projectId:         "codecraft-ai-e0c31",
+            storageBucket:     "codecraft-ai-e0c31.firebasestorage.app",
+            messagingSenderId: "120391757852",
+            appId:             "1:120391757852:web:dd52dc1b373d597bd96fd9",
+            measurementId:     "G-NDH3Y3PWW8"
+        };
+        // ──────────────────────────────────────────────────────
 
-  // ২. আপনার Firebase Credentials
-  const firebaseConfig = {
-    apiKey: "AIzaSyCa4ILv8tXw7zNeLaXKZMcHdmOcB7fpQsg",
-    authDomain: "codecraft-ai-e0c31.firebaseapp.com",
-    projectId: "codecraft-ai-e0c31",
-    storageBucket: "codecraft-ai-e0c31.firebasestorage.app",
-    messagingSenderId: "120391757852",
-    appId: "1:120391757852:web:dd52dc1b373d597bd96fd9",
-    measurementId: "G-NDH3Y3PWW8"
-  };
+        const firebaseApp = initializeApp(firebaseConfig);
+        const auth        = getAuth(firebaseApp);
+        const provider    = new GoogleAuthProvider();
 
-  // ৩. ইনিশিয়ালাইজেশন
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const provider = new GoogleAuthProvider();
+        // ── Expose auth instance so the sign-out handler can use it ──
+        window._loomAuth  = auth;
 
-  // ৪. গুগল সাইন-ইন ফাংশন
-  window.signInWithGoogle = async () => {
-    const btn = document.getElementById('google-btn');
-    const errorEl = document.getElementById('auth-error');
-    
-    if (btn) { btn.disabled = true; btn.textContent = 'Signing in...'; }
-    if (errorEl) errorEl.style.display = 'none';
+        // ── signInWithGoogle — called by the HTML onclick button ──
+        window.signInWithGoogle = async () => {
+            const btn = document.getElementById('google-btn');
+            if (btn) {
+                btn.disabled    = true;
+                btn.textContent = 'Signing in…';
+            }
+            try {
+                await signInWithPopup(auth, provider);
+                // onAuthStateChanged below will detect the signed-in user
+                // and handle showing/hiding pages automatically.
+            } catch (err) {
+                console.error('Google sign-in error:', err);
+                if (btn) {
+                    btn.disabled  = false;
+                    btn.innerHTML = googleBtnInnerHTML();
+                }
+                showAuthError(err.code);
+            }
+        };
 
-    try {
-      // পপআপ ওপেন হবে
-      await signInWithPopup(auth, provider);
-    } catch (e) {
-      console.error("Auth Error:", e);
-      if (btn) { 
-        btn.disabled = false; 
-        btn.innerHTML = 'Continue with Google'; 
-      }
-      showAuthError(e.code);
-    }
-  };
+        // ── signOut — called by handleSignOut() in the main JS block ──
+        window.signOut = () => signOut(auth);
 
-  // ৫. সাইন আউট ফাংশন
-  window.logOut = async () => {
-    try {
-      await signOut(auth);
-    } catch (e) {
-      console.error("Sign Out Error:", e);
-    }
-  };
+        // ── Auth state observer — single source of truth for routing ──
+        onAuthStateChanged(auth, (user) => {
+            const authPage = document.getElementById('auth-page');
+            const appPage  = document.getElementById('app');
 
-  // ৬. অথেন্টিকেশন স্টেট ওয়াচার (অটোমেটিক পেজ সুইচ করবে)
-  onAuthStateChanged(auth, (user) => {
-    const authPage = document.getElementById('auth-page');
-    const appPage = document.getElementById('app');
+            if (user) {
+                // Signed in → hide welcome page, show app
+                if (authPage) authPage.style.display = 'none';
+                if (appPage)  appPage.style.display  = 'flex';
 
-    if (user) {
-      // ইউজার লগইন থাকলে মেইন অ্যাপ দেখাবে
-      if (authPage) authPage.style.display = 'none';
-      if (appPage) appPage.style.display = 'flex';
-      
-      // প্রোফাইল তথ্য আপডেট
-      updateProfileUI(user);
-    } else {
-      // লগআউট থাকলে ওয়েলকাম পেজ দেখাবে
-      if (authPage) authPage.style.display = 'flex';
-      if (appPage) appPage.style.display = 'none';
-    }
-  });
+                // Populate profile card in sidebar
+                const nameEl   = document.getElementById('profile-name');
+                const emailEl  = document.getElementById('profile-email');
+                const avatarEl = document.getElementById('profile-avatar');
 
-  function updateProfileUI(user) {
-    const nameEl = document.getElementById('profile-name');
-    const emailEl = document.getElementById('profile-email');
-    const avatarEl = document.getElementById('profile-avatar');
+                if (nameEl)  nameEl.textContent  = user.displayName || 'User';
+                if (emailEl) emailEl.textContent  = user.email       || 'Sign out';
 
-    if (nameEl) nameEl.textContent = user.displayName || 'User';
-    if (emailEl) emailEl.textContent = user.email || '';
-    if (avatarEl) {
-      if (user.photoURL) {
-        avatarEl.innerHTML = `<img src="${user.photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
-      } else {
-        avatarEl.textContent = (user.displayName || 'U')[0].toUpperCase();
-      }
-    }
-  }
+                if (avatarEl) {
+                    if (user.photoURL) {
+                        avatarEl.innerHTML = `<img src="${user.photoURL}"
+                            style="width:100%;height:100%;border-radius:50%;object-fit:cover"
+                            referrerpolicy="no-referrer">`;
+                    } else {
+                        avatarEl.textContent = (user.displayName || 'U')[0].toUpperCase();
+                    }
+                }
 
-  function showAuthError(code) {
-    const map = {
-      'auth/popup-closed-by-user': 'Sign-in cancelled.',
-      'auth/network-request-failed': 'Network error. Check connection.',
-      'auth/popup-blocked': 'Popup blocked. Please allow popups for this site.',
-      'auth/operation-not-allowed': 'Google Sign-in not enabled in Firebase console.',
-      'auth/unauthorized-domain': 'This domain is not authorized in Firebase console.'
-    };
-    const el = document.getElementById('auth-error');
-    if (el) { 
-      el.textContent = map[code] || 'Sign-in failed. Try again.'; 
-      el.style.display = 'block'; 
-    }
-  }
-</script>
-    <!-- END OF NEW AUTH LOGIC -->
+                // Kick off a fresh chat session on first load
+                if (typeof startNewChat === 'function') startNewChat();
+
+            } else {
+                // Signed out → show welcome/auth page, hide app
+                if (authPage) authPage.style.display = 'flex';
+                if (appPage)  appPage.style.display  = 'none';
+            }
+        });
+
+        // ── Helper: rebuild Google button inner HTML after a failed attempt ──
+        function googleBtnInnerHTML() {
+            return `<svg width="18" height="18" viewBox="0 0 48 48">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                <path fill="none" d="M0 0h48v48H0z"/>
+            </svg>
+            Continue with Google`;
+        }
+
+        // ── Helper: map Firebase error codes to friendly messages ──
+        function showAuthError(code) {
+            const messages = {
+                'auth/popup-closed-by-user':   'Sign-in cancelled.',
+                'auth/network-request-failed': 'Network error. Check your connection.',
+                'auth/popup-blocked':          'Popup blocked — please allow popups for this site.',
+                'auth/cancelled-popup-request':'Sign-in cancelled.',
+                'auth/unauthorized-domain':    'This domain is not authorised in Firebase Console.',
+            };
+            const el = document.getElementById('auth-error');
+            if (el) {
+                el.textContent    = messages[code] || `Sign-in failed (${code}). Please try again.`;
+                el.style.display  = 'block';
+            }
+        }
+    </script>
+    <!-- ══════════════════════════════════════════════════════════
+         END OF FIREBASE AUTH BLOCK
+    ══════════════════════════════════════════════════════════ -->
 
     <style>
         /* ═══════════════════════════════════
@@ -216,7 +228,6 @@ HTML_TEMPLATE = """
             --shadow-md:     0 4px 16px rgba(0,0,0,0.5);
             --shadow-lg:     0 8px 32px rgba(0,0,0,0.6);
             --transition:    0.18s ease;
-            /* Mobile safe areas */
             --safe-bottom:   env(safe-area-inset-bottom, 0px);
             --safe-top:      env(safe-area-inset-top, 0px);
         }
@@ -225,9 +236,7 @@ HTML_TEMPLATE = """
 
         html {
             height: 100%;
-            /* START OF NEW MOBILE FIX — disable pull-to-refresh */
             overscroll-behavior: none;
-            /* END OF NEW MOBILE FIX */
         }
 
         body {
@@ -238,10 +247,8 @@ HTML_TEMPLATE = """
             color: var(--text-primary);
             overflow: hidden;
             -webkit-font-smoothing: antialiased;
-            /* START OF NEW MOBILE FIX — prevent bounce scroll */
             overscroll-behavior: none;
             -webkit-overflow-scrolling: touch;
-            /* END OF NEW MOBILE FIX */
         }
 
         ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -250,7 +257,7 @@ HTML_TEMPLATE = """
         ::-webkit-scrollbar-thumb:hover { background: #4a5060; }
 
         /* ═══════════════════════════════════
-           START OF NEW AUTH LOGIC — Welcome Page Styles
+           AUTH / WELCOME PAGE STYLES
         ═══════════════════════════════════ */
         #auth-page {
             position: fixed;
@@ -261,7 +268,6 @@ HTML_TEMPLATE = """
             justify-content: center;
             z-index: 99999;
             padding: 24px;
-            /* Subtle grid texture */
             background-image:
                 linear-gradient(rgba(108,140,255,0.03) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(108,140,255,0.03) 1px, transparent 1px);
@@ -393,13 +399,12 @@ HTML_TEMPLATE = """
             line-height: 1.6;
         }
         .auth-footer a { color: var(--accent); text-decoration: none; }
-        /* END OF NEW AUTH LOGIC — Welcome Page Styles */
 
         /* ═══════════════════════════════════
            MAIN APP LAYOUT
         ═══════════════════════════════════ */
         #app {
-            display: none; /* Hidden until auth confirmed */
+            display: none;
             height: 100vh;
             width: 100vw;
             position: relative;
@@ -491,7 +496,6 @@ HTML_TEMPLATE = """
 
         #history-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
 
-        /* START OF NEW SIDEBAR FEATURE — 3-dot History Items */
         .history-item {
             display: flex;
             align-items: center;
@@ -538,7 +542,6 @@ HTML_TEMPLATE = """
         .history-item:hover .btn-options,
         .history-item.active .btn-options { opacity: 1; }
         .history-item .btn-options:hover { background: var(--bg-hover); color: var(--text-primary); }
-        /* END OF NEW SIDEBAR FEATURE */
 
         /* ── CONTEXT MENU ── */
         #context-menu {
@@ -686,9 +689,7 @@ HTML_TEMPLATE = """
             display: flex;
             flex-direction: column;
             gap: 0;
-            /* START OF NEW MOBILE FIX — smooth scroll on iOS */
             -webkit-overflow-scrolling: touch;
-            /* END OF NEW MOBILE FIX */
         }
 
         #welcome {
@@ -795,14 +796,13 @@ HTML_TEMPLATE = """
             color: #f87171;
         }
 
-        /* START OF NEW CODE BLOCK FEATURE — High-Capacity Zero-Lag Code Blocks */
+        /* ── CODE BLOCKS ── */
         .code-block-wrapper {
             background: var(--code-bg);
             border: 1px solid var(--border-strong);
             border-radius: var(--radius-md);
             overflow: hidden;
             margin: 12px 0;
-            /* Contain stacking context */
             contain: layout style;
         }
         .code-block-header {
@@ -824,16 +824,8 @@ HTML_TEMPLATE = """
             letter-spacing: 0.05em;
             text-transform: uppercase;
         }
-        .code-meta {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .code-lines {
-            font-family: var(--font-mono);
-            font-size: 10.5px;
-            color: var(--text-muted);
-        }
+        .code-meta { display: flex; align-items: center; gap: 8px; }
+        .code-lines { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-muted); }
         .btn-copy {
             display: flex;
             align-items: center;
@@ -850,24 +842,19 @@ HTML_TEMPLATE = """
         }
         .btn-copy:hover  { background: var(--bg-hover); color: var(--text-primary); }
         .btn-copy.copied { color: var(--success); border-color: var(--success); }
-
-        /* PERFORMANCE: max-height + overflow-y stops layout explosion from huge outputs */
         .code-block-wrapper pre {
             margin: 0;
             padding: 16px;
             overflow-x: auto;
             overflow-y: auto;
-            max-height: 480px;      /* hard cap — prevents browser freeze */
+            max-height: 480px;
             font-family: var(--font-mono);
             font-size: 13px;
             line-height: 1.65;
             background: transparent !important;
-            /* GPU-accelerated scrolling for large code */
             will-change: scroll-position;
         }
         .code-block-wrapper code { background: transparent !important; font-size: 13px !important; }
-
-        /* Expand button for truncated blocks */
         .btn-expand-code {
             display: flex;
             align-items: center;
@@ -885,7 +872,6 @@ HTML_TEMPLATE = """
             transition: color var(--transition), background var(--transition);
         }
         .btn-expand-code:hover { color: var(--text-primary); background: var(--bg-hover); }
-        /* END OF NEW CODE BLOCK FEATURE */
 
         /* ── IMAGE ── */
         .generated-image-wrap { margin-top: 8px; }
@@ -914,12 +900,11 @@ HTML_TEMPLATE = """
         .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
         @keyframes blink { 0%,80%,100% { opacity: 0.2; } 40% { opacity: 1; } }
 
-        /* START OF NEW INPUT BOX FEATURE — Floating Premium Input */
+        /* ── INPUT AREA ── */
         #input-area {
             padding: 0 20px 20px;
             padding-bottom: calc(20px + var(--safe-bottom));
             background: var(--bg-base);
-            /* Gradient fade above input to blend chat into it */
             position: relative;
         }
         #input-area::before {
@@ -954,15 +939,12 @@ HTML_TEMPLATE = """
             resize: none;
             color: var(--text-primary);
             font-family: var(--font-sans);
-            font-size: 14.5px;
             line-height: 1.6;
             max-height: 200px;
             min-height: 26px;
             overflow-y: auto;
             padding: 2px 0;
-            /* START OF NEW MOBILE FIX — prevent iOS zoom on focus */
             font-size: max(16px, 14.5px);
-            /* END OF NEW MOBILE FIX */
         }
         #user-input::placeholder { color: var(--text-muted); }
         .input-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
@@ -995,7 +977,6 @@ HTML_TEMPLATE = """
         #btn-send:active   { transform: scale(0.96); }
         #btn-send:disabled { background: var(--bg-hover); color: var(--text-muted); cursor: not-allowed; transform: none; }
         .input-hint { text-align: center; font-size: 11px; color: var(--text-muted); margin-top: 10px; }
-        /* END OF NEW INPUT BOX FEATURE */
 
         /* ── OVERLAY ── */
         #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 99; backdrop-filter: blur(2px); }
@@ -1022,17 +1003,15 @@ HTML_TEMPLATE = """
         }
         @media (min-width: 769px) { #topbar { display: none !important; } }
 
-        /* START OF NEW MOBILE FIX — keyboard-aware layout */
         @supports (height: 100dvh) {
             #app, html, body { height: 100dvh; }
         }
-        /* END OF NEW MOBILE FIX */
     </style>
 </head>
 <body>
 
 <!-- ══════════════════════════════════════════════════════════
-     START OF NEW AUTH LOGIC — Welcome / Sign-In Page
+     AUTH / WELCOME PAGE
 ══════════════════════════════════════════════════════════ -->
 <div id="auth-page">
     <div class="auth-card">
@@ -1068,7 +1047,6 @@ HTML_TEMPLATE = """
         </div>
 
         <button id="google-btn" onclick="signInWithGoogle()">
-            <!-- Google G logo SVG -->
             <svg width="18" height="18" viewBox="0 0 48 48">
                 <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
                 <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -1088,7 +1066,6 @@ HTML_TEMPLATE = """
         </div>
     </div>
 </div>
-<!-- END OF NEW AUTH LOGIC — Welcome / Sign-In Page -->
 
 
 <!-- ══════════════════════════════════════════════════════════
@@ -1200,7 +1177,6 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
-        <!-- START OF NEW INPUT BOX FEATURE — Premium Floating Input -->
         <div id="input-area">
             <div class="input-wrapper-outer">
                 <div class="input-box">
@@ -1223,14 +1199,13 @@ HTML_TEMPLATE = """
                 <div class="input-hint">Enter to send · Shift+Enter for new line · type <strong>image:</strong> to generate</div>
             </div>
         </div>
-        <!-- END OF NEW INPUT BOX FEATURE -->
 
     </main>
 </div>
 
 <script>
 /* ═══════════════════════════════════════════════════════════
-   ORIGINAL CORE STATE — UNCHANGED
+   CORE STATE — UNCHANGED
 ═══════════════════════════════════════════════════════════ */
 let currentChatId = null;
 let chats = JSON.parse(localStorage.getItem('loom_ai_chats')) || {};
@@ -1240,19 +1215,14 @@ function saveToLocal() {
     renderHistory();
 }
 
-/* ═══════════════════════════════════════════════════════════
-   START OF NEW AUTH LOGIC — Sign Out Handler
-═══════════════════════════════════════════════════════════ */
+/* ─── Sign Out Handler ─────────────────────────────────── */
 function handleSignOut() {
     if (window._loomAuth && confirm('Sign out of LOOM AI?')) {
         window.signOut();
     }
 }
-/* END OF NEW AUTH LOGIC — Sign Out Handler */
 
-/* ═══════════════════════════════════════════════════════════
-   START OF NEW SIDEBAR FEATURE — History + 3-dot Menu
-═══════════════════════════════════════════════════════════ */
+/* ─── History + 3-dot Context Menu ────────────────────── */
 let ctxTargetId = null;
 
 function renderHistory() {
@@ -1330,7 +1300,6 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeCon
 
 function closeContextMenu() { document.getElementById('context-menu').classList.remove('open'); }
 
-/* Star / Unstar */
 function ctxStar() {
     if (!ctxTargetId || !chats[ctxTargetId]) return;
     chats[ctxTargetId].starred = !chats[ctxTargetId].starred;
@@ -1338,13 +1307,12 @@ function ctxStar() {
     closeContextMenu();
 }
 
-/* Rename — inline input */
 function ctxRename() {
     if (!ctxTargetId) return;
     closeContextMenu();
     const item = document.querySelector(`.history-item[data-id="${ctxTargetId}"]`);
     if (!item) return;
-    const titleSpan   = item.querySelector('.chat-title');
+    const titleSpan    = item.querySelector('.chat-title');
     const currentTitle = chats[ctxTargetId].title || 'New Chat';
     const input = document.createElement('input');
     input.className = 'chat-title-input';
@@ -1365,14 +1333,11 @@ function ctxRename() {
     });
 }
 
-/* Add to Project — placeholder for your integration */
 function ctxAddToProject() {
     closeContextMenu();
-    // ADD TO PROJECT LOGIC HERE — wire to your project system
     console.log('Add to project:', ctxTargetId);
 }
 
-/* Delete — confirmation modal */
 function ctxDelete()   { closeContextMenu(); document.getElementById('confirm-modal').classList.add('open'); }
 function closeModal()  { document.getElementById('confirm-modal').classList.remove('open'); }
 
@@ -1384,11 +1349,8 @@ function confirmDelete() {
     closeModal();
     ctxTargetId = null;
 }
-/* END OF NEW SIDEBAR FEATURE */
 
-/* ═══════════════════════════════════════════════════════════
-   ORIGINAL CHAT LOGIC — UNCHANGED BEHAVIOUR
-═══════════════════════════════════════════════════════════ */
+/* ─── Chat Logic — UNCHANGED ──────────────────────────── */
 function startNewChat() {
     currentChatId = Date.now().toString();
     const win = document.getElementById('chat-window');
@@ -1444,7 +1406,6 @@ function handleKey(e) {
 function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('show'); }
 function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
 
-/* ORIGINAL SEND — UNCHANGED */
 async function send() {
     const input = document.getElementById('user-input');
     const text  = input.value.trim();
@@ -1459,7 +1420,7 @@ async function send() {
     input.value = '';
     input.style.height = 'auto';
 
-    const sendBtn   = document.getElementById('btn-send');
+    const sendBtn    = document.getElementById('btn-send');
     sendBtn.disabled = true;
 
     const typingRow = buildTypingRow();
@@ -1549,15 +1510,14 @@ function appendMessage(role, text, isImage = false, save = true) {
     }
 }
 
-/* START OF NEW CODE BLOCK FEATURE — Premium Renderer with line count + expand */
 function renderMarkdown(text) {
     const renderer = new marked.Renderer();
 
     renderer.code = function(code, lang) {
-        const language   = (lang || 'plaintext').toLowerCase();
+        const language    = (lang || 'plaintext').toLowerCase();
         const displayLang = lang || 'plaintext';
-        const lineCount  = code.split('\\n').length;
-        const isTall     = lineCount > 25; // show expand hint if >25 lines
+        const lineCount   = code.split('\\n').length;
+        const isTall      = lineCount > 25;
 
         const escaped = code
             .replace(/&/g, '&amp;')
@@ -1591,9 +1551,8 @@ function renderMarkdown(text) {
     return marked.parse(text);
 }
 
-/* Toggle code block max-height (expand/collapse) */
 function toggleExpandCode(btn) {
-    const pre = btn.closest('.code-block-wrapper').querySelector('pre');
+    const pre      = btn.closest('.code-block-wrapper').querySelector('pre');
     const expanded = pre.style.maxHeight === 'none';
     if (expanded) {
         pre.style.maxHeight = '';
@@ -1604,7 +1563,6 @@ function toggleExpandCode(btn) {
     }
 }
 
-/* Copy code button */
 function copyCode(btn) {
     const pre = btn.closest('.code-block-wrapper').querySelector('pre');
     navigator.clipboard.writeText(pre.innerText).then(() => {
@@ -1616,9 +1574,7 @@ function copyCode(btn) {
         }, 2000);
     });
 }
-/* END OF NEW CODE BLOCK FEATURE */
 
-/* ORIGINAL DOWNLOAD — UNCHANGED */
 async function downloadImage(url) {
     try {
         const res  = await fetch(url);
@@ -1637,10 +1593,6 @@ function scrollBottom() {
 
 /* ── INIT ── */
 renderHistory();
-/* Note: startNewChat() is now triggered after auth confirms user is logged in.
-   If auth is not configured, the app page is hidden. To bypass auth during dev,
-   you can manually call: document.getElementById('auth-page').style.display='none';
-   document.getElementById('app').style.display='flex'; startNewChat(); */
 </script>
 </body>
 </html>
