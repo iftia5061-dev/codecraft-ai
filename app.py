@@ -75,74 +75,112 @@ HTML_TEMPLATE = """
 
         // ══════════════════════════════════════════════
         // PLUG IN YOUR FIREBASE CREDENTIALS HERE
-        // ══════════════════════════════════════════════
-        const firebaseConfig = {
-  apiKey: "AIzaSyCa4ILv8tXw7zNeLaXKZMcHdmOcB7fpQsg",
-  authDomain: "codecraft-ai-e0c31.firebaseapp.com",
-  projectId: "codecraft-ai-e0c31",
-  storageBucket: "codecraft-ai-e0c31.firebasestorage.app",
-  messagingSenderId: "120391757852",
-  appId: "1:120391757852:web:dd52dc1b373d597bd96fd9",
-  measurementId: "G-NDH3Y3PWW8"
-};
-        // ══════════════════════════════════════════════
+    <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { 
+    getAuth, 
+    signInWithPopup, 
+    GoogleAuthProvider, 
+    onAuthStateChanged, 
+    signOut 
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        const app    = initializeApp(firebaseConfig);
-        const auth   = getAuth(app);
-        const provider = new GoogleAuthProvider();
+  // ২. আপনার Firebase Credentials
+  const firebaseConfig = {
+    apiKey: "AIzaSyCa4ILv8tXw7zNeLaXKZMcHdmOcB7fpQsg",
+    authDomain: "codecraft-ai-e0c31.firebaseapp.com",
+    projectId: "codecraft-ai-e0c31",
+    storageBucket: "codecraft-ai-e0c31.firebasestorage.app",
+    messagingSenderId: "120391757852",
+    appId: "1:120391757852:web:dd52dc1b373d597bd96fd9",
+    measurementId: "G-NDH3Y3PWW8"
+  };
 
-        // Expose to global scope so inline handlers can call them
-        window._loomAuth = auth;
+  // ৩. ইনিশিয়ালাইজেশন
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
 
-        // Google Sign-In button handler
-        window.signInWithGoogle = async () => {
-            const btn = document.getElementById('google-btn');
-            if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
-            try {
-                await signInWithPopup(auth, provider);
-                // onAuthStateChanged below handles the redirect
-            } catch (e) {
-                console.error(e);
-                if (btn) { btn.disabled = false; btn.innerHTML = googleBtnHTML(); }
-                showAuthError(e.code);
-            }
-        };
+  // ৪. গুগল সাইন-ইন ফাংশন
+  window.signInWithGoogle = async () => {
+    const btn = document.getElementById('google-btn');
+    const errorEl = document.getElementById('auth-error');
+    
+    if (btn) { btn.disabled = true; btn.textContent = 'Signing in...'; }
+    if (errorEl) errorEl.style.display = 'none';
 
-        // Sign out handler
-        window.signOut = () => signOut(auth);
+    try {
+      // পপআপ ওপেন হবে
+      await signInWithPopup(auth, provider);
+    } catch (e) {
+      console.error("Auth Error:", e);
+      if (btn) { 
+        btn.disabled = false; 
+        btn.innerHTML = 'Continue with Google'; 
+      }
+      showAuthError(e.code);
+    }
+  };
 
-        // Auth state watcher — single source of truth for page routing
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                // User is signed in → show main app
-                document.getElementById('auth-page').style.display  = 'none';
-                document.getElementById('app').style.display        = 'flex';
-                // Populate profile card
-                document.getElementById('profile-name').textContent = user.displayName || 'User';
-                document.getElementById('profile-email').textContent = user.email || '';
-                const av = document.getElementById('profile-avatar');
-                if (user.photoURL) {
-                    av.innerHTML = `<img src="${user.photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
-                } else {
-                    av.textContent = (user.displayName || 'U')[0].toUpperCase();
-                }
-            } else {
-                // Not signed in → show welcome/auth page
-                document.getElementById('auth-page').style.display  = 'flex';
-                document.getElementById('app').style.display        = 'none';
-            }
-        });
+  // ৫. সাইন আউট ফাংশন
+  window.logOut = async () => {
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.error("Sign Out Error:", e);
+    }
+  };
 
-        function showAuthError(code) {
-            const map = {
-                'auth/popup-closed-by-user':    'Sign-in cancelled.',
-                'auth/network-request-failed':  'Network error. Check connection.',
-                'auth/popup-blocked':           'Popup blocked. Allow popups for this site.',
-            };
-            const el = document.getElementById('auth-error');
-            if (el) { el.textContent = map[code] || 'Sign-in failed. Try again.'; el.style.display = 'block'; }
-        }
-    </script>
+  // ৬. অথেন্টিকেশন স্টেট ওয়াচার (অটোমেটিক পেজ সুইচ করবে)
+  onAuthStateChanged(auth, (user) => {
+    const authPage = document.getElementById('auth-page');
+    const appPage = document.getElementById('app');
+
+    if (user) {
+      // ইউজার লগইন থাকলে মেইন অ্যাপ দেখাবে
+      if (authPage) authPage.style.display = 'none';
+      if (appPage) appPage.style.display = 'flex';
+      
+      // প্রোফাইল তথ্য আপডেট
+      updateProfileUI(user);
+    } else {
+      // লগআউট থাকলে ওয়েলকাম পেজ দেখাবে
+      if (authPage) authPage.style.display = 'flex';
+      if (appPage) appPage.style.display = 'none';
+    }
+  });
+
+  function updateProfileUI(user) {
+    const nameEl = document.getElementById('profile-name');
+    const emailEl = document.getElementById('profile-email');
+    const avatarEl = document.getElementById('profile-avatar');
+
+    if (nameEl) nameEl.textContent = user.displayName || 'User';
+    if (emailEl) emailEl.textContent = user.email || '';
+    if (avatarEl) {
+      if (user.photoURL) {
+        avatarEl.innerHTML = `<img src="${user.photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+      } else {
+        avatarEl.textContent = (user.displayName || 'U')[0].toUpperCase();
+      }
+    }
+  }
+
+  function showAuthError(code) {
+    const map = {
+      'auth/popup-closed-by-user': 'Sign-in cancelled.',
+      'auth/network-request-failed': 'Network error. Check connection.',
+      'auth/popup-blocked': 'Popup blocked. Please allow popups for this site.',
+      'auth/operation-not-allowed': 'Google Sign-in not enabled in Firebase console.',
+      'auth/unauthorized-domain': 'This domain is not authorized in Firebase console.'
+    };
+    const el = document.getElementById('auth-error');
+    if (el) { 
+      el.textContent = map[code] || 'Sign-in failed. Try again.'; 
+      el.style.display = 'block'; 
+    }
+  }
+</script>
     <!-- END OF NEW AUTH LOGIC -->
 
     <style>
