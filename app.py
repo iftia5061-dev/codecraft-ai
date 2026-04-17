@@ -20,7 +20,7 @@ def get_ai_response(prompt):
     if not active_key: return "API Key missing!"
     try:
         genai.configure(api_key=active_key)
-        model = genai.GenerativeModel('gemini-2.0-flash-preview')
+        model = genai.GenerativeModel('gemini-3-flash-preview')
         system_instruction = """
         You are LOOM AI. Your replies must be clean, professional, and well-structured using markdown.
         DO NOT give long-winded answers. Be direct.
