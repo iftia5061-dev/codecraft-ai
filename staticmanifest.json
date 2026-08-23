@@ -1,0 +1,8 @@
+{
+  "short_name": "CodeCraft",
+  "name": "CodeCraft AI",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#f5f0e8",
+  "background_color": "#f5f0e8"
+}
